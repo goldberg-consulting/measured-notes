@@ -23,8 +23,21 @@ cat > "$APP/Contents/Info.plist" <<PLIST
 <key>NSPrincipalClass</key><string>NSApplication</string>
 </dict></plist>
 PLIST
-codesign --force --sign - "$APP"
+if [[ -n "${SIGNING_IDENTITY:-}" ]]; then
+  codesign --force --options runtime --timestamp --sign "$SIGNING_IDENTITY" "$APP"
+else
+  codesign --force --sign - "$APP"
+fi
 codesign --verify --strict "$APP"
+if [[ -n "${NOTARY_PROFILE:-}" ]]; then
+  : "${SIGNING_IDENTITY:?Notarization requires a Developer ID signing identity}"
+  COPYFILE_DISABLE=1 ditto -c -k --norsrc --keepParent "$APP" "$STAGING/submission.zip"
+  xcrun notarytool submit "$STAGING/submission.zip" --keychain-profile "$NOTARY_PROFILE" --wait
+  xcrun stapler staple "$APP"
+  xcrun stapler validate "$APP"
+  codesign --verify --strict "$APP"
+  spctl --assess --type execute --verbose "$APP"
+fi
 rm -rf "dist/Measured Notes.app"
 ditto --norsrc "$APP" "dist/Measured Notes.app"
 # Archive from staging to keep Finder metadata out of the release.

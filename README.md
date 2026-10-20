@@ -14,12 +14,12 @@ A small macOS notes app from measured.one. Press **⌘⇧T** from any app to cap
 Requires an Apple silicon Mac running macOS 26 or later.
 
 ```sh
-brew install --cask eli-s-goldberg/tap/measured-notes
+brew install --cask goldberg-consulting/tap/measured-notes
 ```
 
-You can also download the app from [Releases](https://github.com/eli-s-goldberg/measured-notes/releases).
+You can also download the app from [Releases](https://github.com/goldberg-consulting/measured-notes/releases).
 
-The initial release is ad-hoc signed, without Developer ID signing or notarization. macOS may block it from opening. Only open it if you trust this source; see [Apple’s instructions](https://support.apple.com/en-us/102445). Building from source is another option.
+Releases from 0.1.1 onward are signed with Developer ID and notarized by Apple.
 
 ## Use
 
@@ -49,4 +49,11 @@ Requires Xcode 26 or later, its command-line tools, and an Apple silicon Mac.
 open "dist/Measured Notes.app"
 ```
 
-`./release.sh` builds a versioned ZIP and checksum in `dist/`. The version is stored in `VERSION`. Release builds are ad-hoc signed until Developer ID signing and notarization are configured.
+The version is stored in `VERSION`. Local builds are ad-hoc signed. To create a public release, set a Developer ID Application identity and a saved notarization Keychain profile:
+
+```sh
+SIGNING_IDENTITY="Developer ID Application: Your Name (TEAMID)" \
+NOTARY_PROFILE="your-notary-profile" ./release.sh
+```
+
+The release script runs tests, signs with the hardened runtime, submits to Apple, staples the notarization ticket, and checks Gatekeeper acceptance. It then writes the ZIP and checksum to `dist/`. Credentials stay in Keychain.

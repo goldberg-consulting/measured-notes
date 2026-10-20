@@ -1,6 +1,9 @@
 #!/bin/bash
 set -euo pipefail
 cd "$(dirname "$0")"
+# Public releases must be signed and notarized; build.sh supports local builds.
+: "${SIGNING_IDENTITY:?Set SIGNING_IDENTITY to a Developer ID Application identity}"
+: "${NOTARY_PROFILE:?Set NOTARY_PROFILE to a saved notarytool Keychain profile}"
 ./test.sh
 ./build.sh
 VERSION=$(tr -d '\n' < VERSION)
