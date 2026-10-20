@@ -2,6 +2,7 @@ import AppKit
 import SwiftUI
 import Carbon
 import UserNotifications
+import UniformTypeIdentifiers
 
 final class CapturePanel: NSPanel {
     override var canBecomeKey: Bool { true }
@@ -42,6 +43,10 @@ final class CapturePanel: NSPanel {
         file.addItem(withTitle: "New note", action: #selector(newNote), keyEquivalent: "n").target = self
         file.addItem(withTitle: "Quick capture", action: #selector(capture), keyEquivalent: "T").target = self
         file.addItem(withTitle: "Open note browser", action: #selector(showLibrary), keyEquivalent: "0").target = self
+        file.addItem(.separator())
+        file.addItem(withTitle: "Export all notes as SQLite…", action: #selector(exportSQLite), keyEquivalent: "").target = self
+        file.addItem(withTitle: "Export all notes as JSON…", action: #selector(exportJSON), keyEquivalent: "").target = self
+        file.addItem(withTitle: "Show notes storage in Finder", action: #selector(showStorage), keyEquivalent: "").target = self
         let editRoot = NSMenuItem(title: "Edit", action: nil, keyEquivalent: ""); main.addItem(editRoot)
         let edit = NSMenu(title: "Edit"); editRoot.submenu = edit
         edit.addItem(withTitle: "Undo", action: Selector(("undo:")), keyEquivalent: "z")
@@ -97,6 +102,36 @@ final class CapturePanel: NSPanel {
     }
     @objc func showLibrary() { NSApp.activate(ignoringOtherApps: true); window.makeKeyAndOrderFront(nil) }
     @objc func newNote() { store.create(); showLibrary() }
+    @objc func exportSQLite() { exportNotes(asSQLite: true) }
+    @objc func exportJSON() { exportNotes(asSQLite: false) }
+    @objc func showStorage() { NSWorkspace.shared.activateFileViewerSelecting([store.storageURL]) }
+    func exportNotes(asSQLite: Bool) {
+        guard store.storageReadable else {
+            let alert = NSAlert()
+            alert.messageText = "Saved notes could not be read"
+            alert.informativeText = "Export is unavailable to avoid creating an incomplete backup. Your original storage file is preserved."
+            alert.runModal()
+            return
+        }
+        let panel = NSSavePanel()
+        panel.title = "Export all notes"
+        panel.nameFieldStringValue = asSQLite ? "Measured Notes.sqlite" : "Measured Notes.json"
+        panel.allowedContentTypes = [asSQLite ? (UTType(filenameExtension: "sqlite") ?? .data) : .json]
+        guard panel.runModal() == .OK, let url = panel.url else { return }
+        do {
+            guard url.standardizedFileURL.resolvingSymlinksInPath() != store.storageURL.standardizedFileURL.resolvingSymlinksInPath() else {
+                throw NSError(domain: "one.measured.notes.export", code: 2, userInfo: [NSLocalizedDescriptionKey: "Choose a different location from the active notes storage file."])
+            }
+            let archive = NotesArchive(notes: store.notes, collections: store.collections)
+            if asSQLite { try NotesExport.sqlite(archive, to: url) }
+            else { try NotesExport.json(archive, to: url) }
+            NSWorkspace.shared.activateFileViewerSelecting([url])
+        } catch {
+            let alert = NSAlert(error: error)
+            alert.messageText = "Could not export notes"
+            alert.runModal()
+        }
+    }
     @objc func about() { NSApp.orderFrontStandardAboutPanel(options: [.applicationName: "measured.one Notes", .applicationVersion: Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "Development", .credits: NSAttributedString(string: "Thoughts into thunder.\nLocal notes • On-device intelligence • ⌘⇧T anywhere")]) }
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool { false }
     func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool { showLibrary(); return true }

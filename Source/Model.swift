@@ -92,6 +92,8 @@ struct Note: Codable, Identifiable, Equatable {
     @Published var summaryStatus: [UUID: String] = [:]
     private var analysisTask: Task<Void, Never>?
     private let file: URL
+    var storageURL: URL { file }
+    var storageReadable: Bool { canSave }
     private var canSave = true
     var activeCollection: NoteCollection? { collections.first { filter == "collection:" + $0.id.uuidString } }
     var filterTitle: String { activeCollection.map { $0.name } ?? filter }

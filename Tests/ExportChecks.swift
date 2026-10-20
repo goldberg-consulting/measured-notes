@@ -1,0 +1,53 @@
+import Foundation
+import SQLite3
+
+@main struct ExportChecks {
+    static func main() throws {
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let collection = NoteCollection(name: "Product", kind: "Product")
+        let parent = NoteAction(text: "Parent's action")
+        let child = NoteAction(text: "子項目", completed: true, parentID: parent.id)
+        let note = Note(title: "'Quoted' 📝", body: "| A | B |\nline\u{0}end", pinned: true, tags: ["one", "two"], people: ["A Person"], summary: "Summary", reminder: Date(timeIntervalSince1970: 1800000000), actions: [parent, child], collectionIDs: [collection.id])
+        let archive = NotesArchive(notes: [note, Note()], collections: [collection])
+        let output = directory.appendingPathComponent("notes.sqlite")
+        try NotesExport.sqlite(archive, to: output)
+        var db: OpaquePointer?
+        precondition(sqlite3_open_v2(output.path, &db, SQLITE_OPEN_READONLY, nil) == SQLITE_OK)
+        defer { sqlite3_close(db) }
+        func query(_ sql: String) -> String {
+            var statement: OpaquePointer?
+            precondition(sqlite3_prepare_v2(db, sql, -1, &statement, nil) == SQLITE_OK)
+            defer { sqlite3_finalize(statement) }
+            precondition(sqlite3_step(statement) == SQLITE_ROW)
+            let bytes = sqlite3_column_text(statement, 0)!
+            return String(decoding: UnsafeBufferPointer(start: bytes, count: Int(sqlite3_column_bytes(statement, 0))), as: UTF8.self)
+        }
+        precondition(query("PRAGMA integrity_check") == "ok")
+        precondition(query("PRAGMA user_version") == "1")
+        precondition(query("SELECT body FROM notes WHERE position=0") == note.body)
+        precondition(query("SELECT title FROM notes WHERE position=0") == note.title)
+        precondition(query("SELECT count(*) FROM notes") == "2")
+        precondition(query("SELECT parent_id FROM actions WHERE position=1") == parent.id.uuidString)
+        precondition(query("SELECT completed FROM actions WHERE position=1") == "1")
+        precondition(query("SELECT collection_id FROM note_collections") == collection.id.uuidString)
+        precondition(query("SELECT count(*) FROM tags") == "2")
+        precondition(query("SELECT person FROM people") == "A Person")
+        let decoded = try JSONDecoder().decode(NotesArchive.self, from: Data(query("SELECT json FROM archive").utf8))
+        precondition(decoded.notes == archive.notes && decoded.collections == archive.collections)
+        let json = directory.appendingPathComponent("notes.json")
+        try NotesExport.json(archive, to: json)
+        let decodedJSON = try JSONDecoder().decode(NotesArchive.self, from: Data(contentsOf: json))
+        precondition(decodedJSON.notes == archive.notes)
+        // A failed export must leave an existing destination untouched.
+        let protected = directory.appendingPathComponent("existing")
+        try FileManager.default.createDirectory(at: protected, withIntermediateDirectories: true)
+        let marker = protected.appendingPathComponent("keep")
+        try Data("keep".utf8).write(to: marker)
+        do { try NotesExport.sqlite(archive, to: protected); preconditionFailure("Expected failure") } catch {}
+        let retained = try String(contentsOf: marker, encoding: .utf8)
+        precondition(retained == "keep")
+        print("PASS: SQLite integrity, complete archive round-trip, Unicode/NUL text, hierarchy, relationships, JSON export, safe failure")
+    }
+}

@@ -6,7 +6,7 @@ STAGING=$(mktemp -d /tmp/measured-notes-build.XXXXXX)
 trap 'rm -rf "$STAGING"' EXIT
 APP="$STAGING/Measured Notes.app"
 mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources" dist
-xcrun swiftc -module-cache-path "$STAGING/module-cache" Source/*.swift -o "$APP/Contents/MacOS/MeasuredNotes" -target arm64-apple-macos26.0 -O -framework SwiftUI -framework AppKit -framework Carbon -framework FoundationModels -framework UserNotifications
+xcrun swiftc -module-cache-path "$STAGING/module-cache" Source/*.swift -o "$APP/Contents/MacOS/MeasuredNotes" -target arm64-apple-macos26.0 -O -framework SwiftUI -framework AppKit -framework Carbon -framework FoundationModels -framework UserNotifications -lsqlite3
 cat > "$APP/Contents/Info.plist" <<PLIST
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">

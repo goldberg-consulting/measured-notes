@@ -8,3 +8,5 @@ for CHECK in ActionChecks CollectionChecks SubitemChecks TableChecks; do
   xcrun swiftc -module-cache-path "$STAGING/module-cache" -target arm64-apple-macos26.0 "$SOURCE" "Tests/$CHECK.swift" -o "$STAGING/$CHECK" -framework FoundationModels -framework UserNotifications
   "$STAGING/$CHECK"
 done
+xcrun swiftc -module-cache-path "$STAGING/module-cache" -target arm64-apple-macos26.0 Source/Model.swift Source/Export.swift Tests/ExportChecks.swift -o "$STAGING/ExportChecks" -framework FoundationModels -framework UserNotifications -lsqlite3
+"$STAGING/ExportChecks"

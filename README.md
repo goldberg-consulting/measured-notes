@@ -37,7 +37,13 @@ Notes are saved locally in:
 ~/Library/Application Support/one.measured.notes/notes.json
 ```
 
-Back up that folder to keep a copy. There is no account, server, or cloud sync. The app does not upload notes to a model service.
+Use **File → Show notes storage in Finder** to find it.
+
+Use **File → Export all notes as SQLite…** or **Export all notes as JSON…** to save a portable snapshot. Exports include all notes, checklists and subitems, collection assignments, tags, people, summaries, and reminders. Exporting does not change the app’s storage. SQLite exports are snapshots; editing them does not update the app, and there is no import command yet.
+
+The SQLite file has `notes`, `actions`, `collections`, `note_collections`, `tags`, and `people` tables. Dates use UTC ISO 8601 strings; `position` preserves list order. `PRAGMA user_version` is the schema version (currently 1). The `archive` table also holds a complete JSON copy for lossless conversion. Table color metadata remains in the Markdown body.
+
+Back up the storage folder to keep a copy. There is no account, server, or cloud sync. The app does not upload notes to a model service.
 
 ## Build
 
