@@ -171,6 +171,7 @@ struct NoteEditor: View {
                 Button { showReminder = true } label: { Image(systemName: "bell.badge") }.help("Set a reminder")
                 Button { showActions.toggle() } label: { Image(systemName: "at") }.help("Share or add a person")
             }.buttonStyle(.plain).foregroundStyle(accent).padding(.bottom, 28)
+            if note.kind == "Meeting" { MeetingControls(store: store, noteID: id).padding(.bottom, 12) }
             TextField("Untitled spark", text: textBinding(\.title), axis: .vertical).font(.system(size: compact ? 27 : 32, weight: .medium, design: .serif)).textFieldStyle(.plain).padding(.bottom, 10)
             HStack { Text(note.updated, format: .dateTime.month(.wide).day().hour().minute()); Text("·"); Text("\(note.body.split { $0.isWhitespace || $0.isNewline }.count) words") }.font(.system(size: 10)).foregroundStyle(muted).padding(.bottom, 20)
             if !store.collections(for: note).isEmpty {

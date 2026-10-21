@@ -30,6 +30,29 @@ struct NoteImage: Codable, Identifiable, Equatable {
     var markdown: String { "![Image](measured-image:\(id.uuidString))" }
 }
 
+struct TranscriptSegment: Codable, Identifiable, Equatable {
+    var id = UUID()
+    var seconds: Double
+    var speaker = ""
+    var text: String
+    var timestamp: String {
+        let value = max(0, Int(seconds.isFinite ? seconds : 0))
+        return String(format: "%02d:%02d:%02d", value / 3600, (value / 60) % 60, value % 60)
+    }
+}
+struct MeetingRecording: Codable, Identifiable, Equatable {
+    var id = UUID()
+    var started = Date()
+    var fileName: String
+    var locale: String
+    var microphone: Bool
+    var status = "Recording"
+    var transcript: [TranscriptSegment] = []
+    var transcriptMarkdown: String {
+        transcript.map { "[" + $0.timestamp + "] " + ($0.speaker.isEmpty ? "" : $0.speaker + ": ") + $0.text }.joined(separator: "\n\n")
+    }
+}
+
 struct Note: Codable, Identifiable, Equatable {
     var id = UUID()
     var title = ""
@@ -44,11 +67,12 @@ struct Note: Codable, Identifiable, Equatable {
     var actions: [NoteAction]?
     var collectionIDs: [UUID]?
     var images: [NoteImage]?
+    var recordings: [MeetingRecording]?
     var displayTitle: String { title.isEmpty ? "Untitled spark" : title }
     var tasks: [NoteAction] { actions ?? [] }
     var openTasks: Int { tasks.filter { !$0.completed }.count }
     var exportMarkdown: String {
-        body + (tasks.isEmpty ? "" : "\n\n## Actions\n" + tasks.map { ($0.parentID == nil ? "" : "    ") + ($0.completed ? "- [x] " : "- [ ] ") + $0.text }.joined(separator: "\n"))
+        body + (recordings ?? []).filter { !$0.transcript.isEmpty }.map { "\n\n## Meeting transcript\n" + $0.transcriptMarkdown }.joined() + (tasks.isEmpty ? "" : "\n\n## Actions\n" + tasks.map { ($0.parentID == nil ? "" : "    ") + ($0.completed ? "- [x] " : "- [ ] ") + $0.text }.joined(separator: "\n"))
     }
     @discardableResult mutating func addSubitem(to itemID: UUID) -> UUID? {
         guard let item = tasks.first(where: { $0.id == itemID }) else { return nil }
@@ -104,6 +128,7 @@ struct Note: Codable, Identifiable, Equatable {
     private let file: URL
     var storageURL: URL { file }
     var storageReadable: Bool { canSave }
+    var recordingNoteID: UUID?
     private var canSave = true
     var activeCollection: NoteCollection? { collections.first { filter == "collection:" + $0.id.uuidString } }
     var filterTitle: String { activeCollection.map { $0.name } ?? filter }
@@ -159,10 +184,11 @@ struct Note: Codable, Identifiable, Equatable {
         let explicit = Self.explicitTags(notes[i].body)
         let removed = Set(Self.explicitTags(previous.body)).subtracting(explicit)
         notes[i].tags = Array(Set(explicit + notes[i].tags.filter { !removed.contains($0) })).sorted()
-        if previous.body != notes[i].body || previous.title != notes[i].title || previous.actions != notes[i].actions { notes[i].summary = "" }
+        if previous.body != notes[i].body || previous.title != notes[i].title || previous.actions != notes[i].actions || previous.recordings != notes[i].recordings { notes[i].summary = "" }
         save(); scheduleAnalysis(for: id)
     }
     func delete(_ id: UUID) {
+        guard recordingNoteID != id else { status = "Stop the meeting and finish transcription before deleting this note."; return }
         UNUserNotificationCenter.current().removePendingNotificationRequests(withIdentifiers: [id.uuidString])
         notes.removeAll { $0.id == id }; selected = filtered.first?.id; save(); scheduleAnalysis()
     }

@@ -41,6 +41,7 @@ final class CapturePanel: NSPanel {
         let fileRoot = NSMenuItem(title: "File", action: nil, keyEquivalent: ""); main.addItem(fileRoot)
         let file = NSMenu(title: "File"); fileRoot.submenu = file
         file.addItem(withTitle: "New note", action: #selector(newNote), keyEquivalent: "n").target = self
+        file.addItem(withTitle: "New meeting note", action: #selector(newMeeting), keyEquivalent: "").target = self
         file.addItem(withTitle: "Quick capture", action: #selector(capture), keyEquivalent: "T").target = self
         file.addItem(withTitle: "Open note browser", action: #selector(showLibrary), keyEquivalent: "0").target = self
         file.addItem(.separator())
@@ -59,6 +60,7 @@ final class CapturePanel: NSPanel {
         let menu = NSMenu()
         menu.addItem(withTitle: "Capture a thought  ⌘⇧T", action: #selector(capture), keyEquivalent: "").target = self
         menu.addItem(withTitle: "Open sanctuary", action: #selector(showLibrary), keyEquivalent: "").target = self
+        menu.addItem(withTitle: "Stop meeting recording", action: #selector(stopMeeting), keyEquivalent: "").target = self
         menu.addItem(.separator())
         menu.addItem(withTitle: "Quit", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "")
         statusItem.menu = menu
@@ -101,6 +103,8 @@ final class CapturePanel: NSPanel {
         if priorApp?.bundleIdentifier != Bundle.main.bundleIdentifier { priorApp?.activate() }
     }
     @objc func showLibrary() { NSApp.activate(ignoringOtherApps: true); window.makeKeyAndOrderFront(nil) }
+    @objc func newMeeting() { store.create(kind: "Meeting"); showLibrary() }
+    @objc func stopMeeting() { MeetingRecorder.shared.stop(); showLibrary() }
     @objc func newNote() { store.create(); showLibrary() }
     @objc func exportSQLite() { exportNotes(asSQLite: true) }
     @objc func exportJSON() { exportNotes(asSQLite: false) }
@@ -135,6 +139,14 @@ final class CapturePanel: NSPanel {
     @objc func about() { NSApp.orderFrontStandardAboutPanel(options: [.applicationName: "measured.one Notes", .applicationVersion: Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "Development", .credits: NSAttributedString(string: "Thoughts into thunder.\nLocal notes • On-device intelligence • ⌘⇧T anywhere")]) }
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool { false }
     func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool { showLibrary(); return true }
+    func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
+        if MeetingRecorder.shared.busy {
+            let alert = NSAlert(); alert.messageText = "A meeting is still active"
+            alert.informativeText = "Stop recording and wait for transcription to finish before quitting."
+            alert.runModal(); return .terminateCancel
+        }
+        return .terminateNow
+    }
     func applicationWillTerminate(_ notification: Notification) { store.save() }
     nonisolated func userNotificationCenter(_ center: UNUserNotificationCenter, willPresent notification: UNNotification) async -> UNNotificationPresentationOptions { [.banner, .sound] }
     nonisolated func userNotificationCenter(_ center: UNUserNotificationCenter, didReceive response: UNNotificationResponse) async {

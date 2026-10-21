@@ -51,7 +51,7 @@ enum NotesExport {
             try check(sqlite3_step(statement))
         }
         try execute("""
-        PRAGMA user_version = 2;
+        PRAGMA user_version = 3;
         BEGIN TRANSACTION;
         CREATE TABLE metadata (key TEXT PRIMARY KEY, value TEXT NOT NULL);
         CREATE TABLE notes (id TEXT PRIMARY KEY, position INTEGER NOT NULL, title TEXT NOT NULL, body TEXT NOT NULL, kind TEXT NOT NULL, updated_at TEXT NOT NULL, pinned INTEGER NOT NULL, summary TEXT NOT NULL, reminder_at TEXT);
@@ -61,12 +61,14 @@ enum NotesExport {
         CREATE TABLE tags (note_id TEXT NOT NULL REFERENCES notes(id), position INTEGER NOT NULL, tag TEXT NOT NULL);
         CREATE TABLE people (note_id TEXT NOT NULL REFERENCES notes(id), position INTEGER NOT NULL, person TEXT NOT NULL);
         CREATE TABLE images (id TEXT PRIMARY KEY, note_id TEXT NOT NULL REFERENCES notes(id), position INTEGER NOT NULL, name TEXT NOT NULL, caption TEXT NOT NULL, width REAL NOT NULL, mime_type TEXT NOT NULL, data BLOB NOT NULL);
+        CREATE TABLE recordings (id TEXT PRIMARY KEY, note_id TEXT NOT NULL REFERENCES notes(id), position INTEGER NOT NULL, started_at TEXT NOT NULL, file_name TEXT NOT NULL, locale TEXT NOT NULL, microphone INTEGER NOT NULL, status TEXT NOT NULL);
+        CREATE TABLE transcript_segments (id TEXT PRIMARY KEY, recording_id TEXT NOT NULL REFERENCES recordings(id), position INTEGER NOT NULL, seconds REAL NOT NULL, speaker TEXT NOT NULL, text TEXT NOT NULL);
         CREATE TABLE archive (id INTEGER PRIMARY KEY CHECK (id = 1), json TEXT NOT NULL);
         """)
         let dates = ISO8601DateFormatter()
         dates.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
         try insert("INSERT INTO metadata VALUES (?, ?)", ["exported_at", dates.string(from: Date())])
-        try insert("INSERT INTO metadata VALUES (?, ?)", ["format", "one.measured.notes.sqlite.v2"])
+        try insert("INSERT INTO metadata VALUES (?, ?)", ["format", "one.measured.notes.sqlite.v3"])
         let encoded = try JSONEncoder().encode(archive)
         try insert("INSERT INTO archive VALUES (1, ?)", [String(decoding: encoded, as: UTF8.self)])
         for (position, note) in archive.notes.enumerated() {
@@ -74,6 +76,12 @@ enum NotesExport {
             try insert("INSERT INTO notes VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)", [id, String(position), note.title, note.body, note.kind, dates.string(from: note.updated), note.pinned ? "1" : "0", note.summary, note.reminder.map { dates.string(from: $0) }])
             for (position, action) in note.tasks.enumerated() {
                 try insert("INSERT INTO actions VALUES (?, ?, ?, ?, ?, ?)", [action.id.uuidString, id, String(position), action.text, action.completed ? "1" : "0", action.parentID?.uuidString])
+            }
+            for (position, recording) in (note.recordings ?? []).enumerated() {
+                try insert("INSERT INTO recordings VALUES (?, ?, ?, ?, ?, ?, ?, ?)", [recording.id.uuidString, id, String(position), dates.string(from: recording.started), recording.fileName, recording.locale, recording.microphone ? "1" : "0", recording.status])
+                for (position, segment) in recording.transcript.enumerated() {
+                    try insert("INSERT INTO transcript_segments VALUES (?, ?, ?, ?, ?, ?)", [segment.id.uuidString, recording.id.uuidString, String(position), String(segment.seconds), segment.speaker, segment.text])
+                }
             }
             for (position, image) in (note.images ?? []).enumerated() {
                 try insert("INSERT INTO images VALUES (?, ?, ?, ?, ?, ?, ?, ?)", [image.id.uuidString, id, String(position), image.name, image.caption, String(image.width), "image/png"], data: image.data)

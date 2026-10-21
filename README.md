@@ -41,7 +41,7 @@ Use **File → Show notes storage in Finder** to find it.
 
 Use **File → Export all notes as SQLite…** or **Export all notes as JSON…** to save a portable snapshot. Exports include all notes, checklists and subitems, collection assignments, tags, people, summaries, and reminders. Exporting does not change the app’s storage. SQLite exports are snapshots; editing them does not update the app, and there is no import command yet.
 
-The SQLite file has `notes`, `actions`, `collections`, `note_collections`, `tags`, `people`, and `images` tables. Dates use UTC ISO 8601 strings; `position` preserves list order. `PRAGMA user_version` is the schema version (currently 2). The `archive` table also holds a complete JSON copy for lossless conversion. Table color metadata remains in the Markdown body.
+The SQLite file has `notes`, `actions`, `collections`, `note_collections`, `tags`, `people`, `images`, `recordings`, and `transcript_segments` tables. Dates use UTC ISO 8601 strings; `position` preserves list order. `PRAGMA user_version` is the schema version (currently 3). The `archive` table also holds a complete JSON copy for lossless conversion. Table color metadata remains in the Markdown body.
 
 Back up the storage folder to keep a copy. There is no account, server, or cloud sync. The app does not upload notes to a model service.
 
@@ -71,3 +71,17 @@ Drop image files into the Markdown editor, paste an image from the clipboard, or
 Images are copied into the note archive, so moving or deleting the original file does not break them. JSON exports include image bytes; SQLite exports include PNG blobs in the `images` table, along with captions and display widths. Markdown image references are local to this app; copying Markdown alone does not include image files.
 
 Imports accept images up to 20 MB and store a PNG copy up to 2400 pixels on its longest side. Animated images use their first frame. Keep originals separately if you need full-resolution or animated source files.
+
+## Meetings
+
+Choose **File → New meeting note**, then **Start meeting…**. Select a spoken language, choose whether to include your microphone, and pick a window in Apple’s content-sharing picker. Recording begins after selection. Use **Stop recording** in the note or **Stop meeting recording** in the menu bar menu.
+
+The app saves the selected window as an MP4 with application audio and the optional microphone. Window selection limits the video; audio comes from the selected application and can include its other windows. Headphones help avoid microphone echo. Video is limited to 1920 × 1080 at 30 fps.
+
+After recording stops, Apple Speech transcribes on-device. A language model may need to download first. Transcription does not require Apple Intelligence to be enabled, but the note summary does. If transcription fails or is cancelled, the video stays available for retry.
+
+Expand **Recordings** to play or save a video, open its transcript, or retry transcription. Transcript text and speaker labels can be edited. Automatic speaker diarization is not included. The running summary uses the note and transcript, subject to its existing 7,000-character limit.
+
+Videos are stored under `~/Library/Application Support/one.measured.notes/Recordings/`. Back up the whole storage folder to retain them. JSON and SQLite exports contain transcripts and recording metadata, but not video bytes; use **Save video…** for a portable MP4. Deleting a note does not erase its recording files.
+
+macOS may request microphone and capture permission. The app shows a recording timer and macOS displays its capture indicator. Quitting is blocked while capture or transcription is active; stop recording or cancel transcription first.
