@@ -10,3 +10,5 @@ for CHECK in ActionChecks CollectionChecks SubitemChecks TableChecks; do
 done
 xcrun swiftc -module-cache-path "$STAGING/module-cache" -target arm64-apple-macos26.0 Source/Model.swift Source/Export.swift Tests/ExportChecks.swift -o "$STAGING/ExportChecks" -framework FoundationModels -framework UserNotifications -lsqlite3
 "$STAGING/ExportChecks"
+xcrun swiftc -module-cache-path "$STAGING/module-cache" -target arm64-apple-macos26.0 Source/Model.swift Source/Images.swift Tests/ImageChecks.swift -o "$STAGING/ImageChecks" -framework FoundationModels -framework UserNotifications -framework AppKit -framework SwiftUI
+"$STAGING/ImageChecks"

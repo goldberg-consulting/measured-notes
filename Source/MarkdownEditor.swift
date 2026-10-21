@@ -3,6 +3,24 @@ import AppKit
 
 final class MarkdownTextView: NSTextView {
     var insertTable: ((NSRange) -> Void)?
+    var importImages: ((NSPasteboard) -> String?)?
+    override func draggingEntered(_ sender: NSDraggingInfo) -> NSDragOperation {
+        if sender.draggingPasteboard.canReadObject(forClasses: [NSURL.self, NSImage.self], options: nil) { return .copy }
+        return super.draggingEntered(sender)
+    }
+    override func draggingUpdated(_ sender: NSDraggingInfo) -> NSDragOperation { draggingEntered(sender) }
+    override func performDragOperation(_ sender: NSDraggingInfo) -> Bool {
+        guard let markdown = importImages?(sender.draggingPasteboard) else { return false }
+        let point = convert(sender.draggingLocation, from: nil)
+        let index = characterIndexForInsertion(at: point)
+        insertText("\n" + markdown + "\n", replacementRange: NSRange(location: index, length: 0))
+        return true
+    }
+    override func paste(_ sender: Any?) {
+        if let markdown = importImages?(NSPasteboard.general) {
+            insertText("\n" + markdown + "\n", replacementRange: selectedRange())
+        } else { super.paste(sender) }
+    }
     override func menu(for event: NSEvent) -> NSMenu? {
         let menu = super.menu(for: event) ?? NSMenu()
         menu.insertItem(.separator(), at: 0)
@@ -17,6 +35,7 @@ final class MarkdownTextView: NSTextView {
 struct MarkdownEditor: NSViewRepresentable {
     @Binding var text: String
     var focus: Bool
+    var importImages: (NSPasteboard) -> String?
     var insertTable: (NSRange) -> Void
     func makeCoordinator() -> Coordinator { Coordinator(self) }
     func makeNSView(context: Context) -> NSScrollView {
@@ -44,6 +63,8 @@ struct MarkdownEditor: NSViewRepresentable {
         editor.typingAttributes = [.font: NSFont.systemFont(ofSize: 14), .foregroundColor: NSColor.black, .paragraphStyle: paragraph]
         editor.delegate = context.coordinator
         editor.string = text
+        editor.registerForDraggedTypes([.fileURL, .png, .tiff])
+        editor.importImages = { context.coordinator.parent.importImages($0) }
         editor.insertTable = { range in context.coordinator.parent.insertTable(range) }
         scroll.documentView = editor
         return scroll

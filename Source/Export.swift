@@ -31,7 +31,7 @@ enum NotesExport {
             }
         }
         func execute(_ sql: String) throws { try check(sqlite3_exec(db, sql, nil, nil, nil)) }
-        func insert(_ sql: String, _ values: [String?]) throws {
+        func insert(_ sql: String, _ values: [String?], data: Data? = nil) throws {
             var statement: OpaquePointer?
             try check(sqlite3_prepare_v2(db, sql, -1, &statement, nil))
             defer { sqlite3_finalize(statement) }
@@ -43,10 +43,15 @@ enum NotesExport {
                     }
                 } else { try check(sqlite3_bind_null(statement, Int32(index + 1))) }
             }
+            if let data {
+                try data.withUnsafeBytes { bytes in
+                    try check(sqlite3_bind_blob(statement, Int32(values.count + 1), bytes.baseAddress, Int32(bytes.count), unsafeBitCast(-1, to: sqlite3_destructor_type.self)))
+                }
+            }
             try check(sqlite3_step(statement))
         }
         try execute("""
-        PRAGMA user_version = 1;
+        PRAGMA user_version = 2;
         BEGIN TRANSACTION;
         CREATE TABLE metadata (key TEXT PRIMARY KEY, value TEXT NOT NULL);
         CREATE TABLE notes (id TEXT PRIMARY KEY, position INTEGER NOT NULL, title TEXT NOT NULL, body TEXT NOT NULL, kind TEXT NOT NULL, updated_at TEXT NOT NULL, pinned INTEGER NOT NULL, summary TEXT NOT NULL, reminder_at TEXT);
@@ -55,12 +60,13 @@ enum NotesExport {
         CREATE TABLE note_collections (note_id TEXT NOT NULL REFERENCES notes(id), collection_id TEXT NOT NULL, position INTEGER NOT NULL);
         CREATE TABLE tags (note_id TEXT NOT NULL REFERENCES notes(id), position INTEGER NOT NULL, tag TEXT NOT NULL);
         CREATE TABLE people (note_id TEXT NOT NULL REFERENCES notes(id), position INTEGER NOT NULL, person TEXT NOT NULL);
+        CREATE TABLE images (id TEXT PRIMARY KEY, note_id TEXT NOT NULL REFERENCES notes(id), position INTEGER NOT NULL, name TEXT NOT NULL, caption TEXT NOT NULL, width REAL NOT NULL, mime_type TEXT NOT NULL, data BLOB NOT NULL);
         CREATE TABLE archive (id INTEGER PRIMARY KEY CHECK (id = 1), json TEXT NOT NULL);
         """)
         let dates = ISO8601DateFormatter()
         dates.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
         try insert("INSERT INTO metadata VALUES (?, ?)", ["exported_at", dates.string(from: Date())])
-        try insert("INSERT INTO metadata VALUES (?, ?)", ["format", "one.measured.notes.sqlite.v1"])
+        try insert("INSERT INTO metadata VALUES (?, ?)", ["format", "one.measured.notes.sqlite.v2"])
         let encoded = try JSONEncoder().encode(archive)
         try insert("INSERT INTO archive VALUES (1, ?)", [String(decoding: encoded, as: UTF8.self)])
         for (position, note) in archive.notes.enumerated() {
@@ -68,6 +74,9 @@ enum NotesExport {
             try insert("INSERT INTO notes VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)", [id, String(position), note.title, note.body, note.kind, dates.string(from: note.updated), note.pinned ? "1" : "0", note.summary, note.reminder.map { dates.string(from: $0) }])
             for (position, action) in note.tasks.enumerated() {
                 try insert("INSERT INTO actions VALUES (?, ?, ?, ?, ?, ?)", [action.id.uuidString, id, String(position), action.text, action.completed ? "1" : "0", action.parentID?.uuidString])
+            }
+            for (position, image) in (note.images ?? []).enumerated() {
+                try insert("INSERT INTO images VALUES (?, ?, ?, ?, ?, ?, ?, ?)", [image.id.uuidString, id, String(position), image.name, image.caption, String(image.width), "image/png"], data: image.data)
             }
             for (position, tag) in note.tags.enumerated() { try insert("INSERT INTO tags VALUES (?, ?, ?)", [id, String(position), tag]) }
             for (position, person) in note.people.enumerated() { try insert("INSERT INTO people VALUES (?, ?, ?)", [id, String(position), person]) }

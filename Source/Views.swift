@@ -128,6 +128,38 @@ struct NoteEditor: View {
     @FocusState private var focused: Bool
     @FocusState private var focusedAction: UUID?
     var note: Note { store.notes.first { $0.id == id } ?? Note() }
+    func changeImage(_ image: NoteImage) {
+        store.update(id) { note in
+            if let index = note.images?.firstIndex(where: { $0.id == image.id }) { note.images?[index] = image }
+        }
+    }
+    func removeImage(_ imageID: UUID) {
+        store.update(id) { note in
+            if let image = note.images?.first(where: { $0.id == imageID }) {
+                note.body = note.body.replacingOccurrences(of: image.markdown, with: "")
+            }
+            note.images?.removeAll { $0.id == imageID }
+        }
+    }
+    func importImages(_ pasteboard: NSPasteboard) -> String? {
+        do { return addImages(try ImageImport.read(pasteboard)) }
+        catch { NSAlert(error: error).runModal(); return nil }
+    }
+    func addImages(_ images: [NoteImage]) -> String? {
+        guard !images.isEmpty else { return nil }
+        store.update(id) { $0.images = ($0.images ?? []) + images }
+        return images.map(\.markdown).joined(separator: "\n")
+    }
+    func chooseImages() {
+        let panel = NSOpenPanel()
+        panel.allowedContentTypes = [.image]; panel.allowsMultipleSelection = true
+        guard panel.runModal() == .OK else { return }
+        do {
+            if let markdown = addImages(try panel.urls.map { try ImageImport.read($0) }) {
+                store.update(id) { $0.body += "\n" + markdown + "\n" }
+            }
+        } catch { NSAlert(error: error).runModal() }
+    }
     func textBinding(_ key: WritableKeyPath<Note, String>) -> Binding<String> { Binding(get: { note[keyPath: key] }, set: { value in store.update(id) { $0[keyPath: key] = value } }) }
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -167,6 +199,7 @@ struct NoteEditor: View {
             HStack(spacing: 12) {
                 Picker("Editor mode", selection: $preview) { Text("Markdown").tag(false); Text("Preview").tag(true) }.pickerStyle(.segmented).labelsHidden().frame(width: 180)
                 Spacer()
+                Button { chooseImages() } label: { Image(systemName: "photo.badge.plus") }.buttonStyle(.plain).help("Add images")
                 Menu {
                     Button("New table…") { tableInsertion = nil; showTablePicker = true }
                     ForEach(Array(MarkdownTable.parse(note.body).enumerated()), id: \.element.id) { index, table in
@@ -178,13 +211,27 @@ struct NoteEditor: View {
             HStack(alignment: .top, spacing: 20) {
                 Group {
             if preview {
-                MarkdownPreview(source: note.body) { editingTable = $0 }.frame(maxHeight: .infinity)
+                MarkdownPreview(source: note.body, images: note.images ?? [], changeImage: changeImage, removeImage: removeImage) { editingTable = $0 }.frame(maxHeight: .infinity)
+                    .dropDestination(for: URL.self) { urls, _ in
+                        do {
+                            guard let markdown = addImages(try urls.map { try ImageImport.read($0) }) else { return false }
+                            store.update(id) { $0.body += "\n" + markdown + "\n" }
+                            return true
+                        } catch { NSAlert(error: error).runModal(); return false }
+                    }
             } else {
+                VStack(spacing: 8) {
                 ZStack(alignment: .topLeading) {
                     if note.body.isEmpty { Text("Let the thought land.\n\nWrite Markdown. Type /table on a new line for a table.").font(.system(size: 14)).foregroundStyle(muted.opacity(0.65)).padding(.top, 8).padding(.leading, 5).allowsHitTesting(false) }
-                    MarkdownEditor(text: textBinding(\.body), focus: focused) { range in
+                    MarkdownEditor(text: textBinding(\.body), focus: focused, importImages: importImages) { range in
                         tableInsertion = range; insertionSource = note.body; showTablePicker = true
                     }
+                }
+                if !(note.images ?? []).isEmpty {
+                    ScrollView { LazyVStack { ForEach(note.images ?? []) { image in
+                        NoteImageCard(image: image, change: changeImage) { removeImage(image.id) }
+                    } } }.frame(maxHeight: 230)
+                }
                 }
             }
                 }.frame(maxWidth: .infinity, maxHeight: .infinity)

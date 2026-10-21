@@ -119,6 +119,9 @@ struct TablePreview: View {
 
 struct MarkdownPreview: View {
     let source: String
+    var images: [NoteImage] = []
+    var changeImage: (NoteImage) -> Void = { _ in }
+    var removeImage: (UUID) -> Void = { _ in }
     var editTable: (MarkdownTable) -> Void
     struct Block: Identifiable {
         var id: Int
@@ -149,6 +152,9 @@ struct MarkdownPreview: View {
                 ForEach(blocks) { block in
                     if let table = block.table { TablePreview(table: table) { editTable(table) } }
                     else if block.kind == "code" { Text(block.text).font(.system(size: 12, design: .monospaced)).textSelection(.enabled).padding(12).frame(maxWidth: .infinity, alignment: .leading).background(panel, in: RoundedRectangle(cornerRadius: 0)) }
+                    else if let image = images.first(where: { $0.markdown == block.text.trimmingCharacters(in: .whitespaces) }) {
+                        NoteImageCard(image: image, change: changeImage) { removeImage(image.id) }
+                    }
                     else { lineView(block.text) }
                 }
             }.frame(maxWidth: .infinity, alignment: .leading).padding(.vertical, 6)

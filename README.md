@@ -41,7 +41,7 @@ Use **File → Show notes storage in Finder** to find it.
 
 Use **File → Export all notes as SQLite…** or **Export all notes as JSON…** to save a portable snapshot. Exports include all notes, checklists and subitems, collection assignments, tags, people, summaries, and reminders. Exporting does not change the app’s storage. SQLite exports are snapshots; editing them does not update the app, and there is no import command yet.
 
-The SQLite file has `notes`, `actions`, `collections`, `note_collections`, `tags`, and `people` tables. Dates use UTC ISO 8601 strings; `position` preserves list order. `PRAGMA user_version` is the schema version (currently 1). The `archive` table also holds a complete JSON copy for lossless conversion. Table color metadata remains in the Markdown body.
+The SQLite file has `notes`, `actions`, `collections`, `note_collections`, `tags`, `people`, and `images` tables. Dates use UTC ISO 8601 strings; `position` preserves list order. `PRAGMA user_version` is the schema version (currently 2). The `archive` table also holds a complete JSON copy for lossless conversion. Table color metadata remains in the Markdown body.
 
 Back up the storage folder to keep a copy. There is no account, server, or cloud sync. The app does not upload notes to a model service.
 
@@ -63,3 +63,11 @@ NOTARY_PROFILE="your-notary-profile" ./release.sh
 ```
 
 The release script runs tests, signs with the hardened runtime, submits to Apple, staples the notarization ticket, and checks Gatekeeper acceptance. It then writes the ZIP and checksum to `dist/`. Credentials stay in Keychain.
+
+## Images
+
+Drop image files into the Markdown editor, paste an image from the clipboard, or use the image button beside Table. Images appear inline in Preview and in an editable image area beneath the Markdown editor. Adjust the width slider to resize proportionally, and type an optional caption below the image.
+
+Images are copied into the note archive, so moving or deleting the original file does not break them. JSON exports include image bytes; SQLite exports include PNG blobs in the `images` table, along with captions and display widths. Markdown image references are local to this app; copying Markdown alone does not include image files.
+
+Imports accept images up to 20 MB and store a PNG copy up to 2400 pixels on its longest side. Animated images use their first frame. Keep originals separately if you need full-resolution or animated source files.

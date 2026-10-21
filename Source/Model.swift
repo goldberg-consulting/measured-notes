@@ -21,6 +21,15 @@ struct NoteAction: Codable, Identifiable, Equatable {
     var parentID: UUID?
 }
 
+struct NoteImage: Codable, Identifiable, Equatable {
+    var id = UUID()
+    var name: String
+    var data: Data
+    var caption = ""
+    var width = 400.0
+    var markdown: String { "![Image](measured-image:\(id.uuidString))" }
+}
+
 struct Note: Codable, Identifiable, Equatable {
     var id = UUID()
     var title = ""
@@ -34,6 +43,7 @@ struct Note: Codable, Identifiable, Equatable {
     var reminder: Date?
     var actions: [NoteAction]?
     var collectionIDs: [UUID]?
+    var images: [NoteImage]?
     var displayTitle: String { title.isEmpty ? "Untitled spark" : title }
     var tasks: [NoteAction] { actions ?? [] }
     var openTasks: Int { tasks.filter { !$0.completed }.count }
