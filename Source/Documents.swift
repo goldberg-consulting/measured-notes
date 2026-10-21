@@ -47,20 +47,31 @@ struct NoteAttachments {
 
 struct DocumentCard: View {
     let document: NoteDocument
+    var compact = false
     var remove: () -> Void
     @State private var confirmRemoval = false
     var body: some View {
         HStack(spacing: 10) {
             Image(systemName: "doc")
             VStack(alignment: .leading, spacing: 3) {
-                Text(document.name).font(.system(size: 12, weight: .medium)).lineLimit(2)
+                Text(document.name).font(.system(size: compact ? 11 : 12, weight: .medium)).lineLimit(compact ? 1 : 2)
                 Text(ByteCountFormatter.string(fromByteCount: Int64(document.data.count), countStyle: .file)).font(.caption).foregroundStyle(.secondary)
             }
             Spacer()
-            Button("Open") { open() }
-            Button("Save…") { save() }
-            Button { confirmRemoval = true } label: { Image(systemName: "trash") }.buttonStyle(.plain).help("Remove document from note")
-        }.controlSize(.small).padding(10).frame(maxWidth: .infinity, alignment: .leading).background(Color.black.opacity(0.035))
+            if compact {
+                Menu {
+                    Button("Open copy") { open() }
+                    Button("Save copy…") { save() }
+                    Divider()
+                    Button("Remove attachment…", role: .destructive) { confirmRemoval = true }
+                } label: { Image(systemName: "ellipsis") }.menuStyle(.borderlessButton).frame(width: 18)
+            } else {
+                Button("Open") { open() }
+                Button("Save…") { save() }
+                Button { confirmRemoval = true } label: { Image(systemName: "trash") }.buttonStyle(.plain).help("Remove document from note")
+            }
+        }.controlSize(.small).padding(compact ? 6 : 10).frame(maxWidth: .infinity, alignment: .leading).background(Color.black.opacity(0.035))
+            .help(document.name)
             .confirmationDialog("Remove this attached copy?", isPresented: $confirmRemoval) {
                 Button("Remove", role: .destructive, action: remove)
                 Button("Cancel", role: .cancel) {}

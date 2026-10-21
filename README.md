@@ -66,7 +66,7 @@ The release script runs tests, signs with the hardened runtime, submits to Apple
 
 ## Images
 
-Drop image files into the Markdown editor, paste an image from the clipboard, or use the image button beside Table. Images appear inline in Preview and in an editable image area beneath the Markdown editor. Adjust the width slider to resize proportionally, and type an optional caption below the image.
+Drop image files into the Markdown editor, paste an image from the clipboard, or use the image button beside Table. Images appear inline in Preview and in the Attachments section beneath Actions. Adjust the width slider to resize proportionally, and type an optional caption below the image.
 
 Images are copied into the note archive, so moving or deleting the original file does not break them. JSON exports include image bytes; SQLite exports include PNG blobs in the `images` table, along with captions and display widths. Markdown image references are local to this app; copying Markdown alone does not include image files.
 
@@ -93,3 +93,9 @@ Drop PDFs, Office documents, spreadsheets, presentations, or text files into the
 Documents are attached as files; their text is not inserted into the note or automatically summarized. SQLite exports include their original bytes in the `documents` table, and JSON exports include them as base64. Markdown references alone do not include the attached files. Files must be under 25 MB each and each drop under 50 MB. Folders and document packages are not supported.
 
 Right-click the note-list header or empty space to create a note, example, checklist, or meeting note. Note rows retain their own menus. New notes inherit the selected collection.
+
+## Compact attachment panel
+
+Attachments share the right column with Actions; they no longer shorten the Markdown editor. The attachment list has its own bounded scroll area and can be collapsed. Use a document’s menu to open, save, or remove it. Click an image row to edit its size or caption.
+
+Images and document bytes are embedded in `notes.json`, not linked to the original files. The Markdown references identify attachment placement within a note. SQLite exports store the bytes in the `images` and `documents` tables.

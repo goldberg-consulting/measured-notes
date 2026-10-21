@@ -214,10 +214,10 @@ struct NoteEditor: View {
                 Button { store.update(id) { $0.pinned.toggle() } } label: { Image(systemName: note.pinned ? "pin.fill" : "pin") }.help("Pin note")
                 Button { showReminder = true } label: { Image(systemName: "bell.badge") }.help("Set a reminder")
                 Button { showActions.toggle() } label: { Image(systemName: "at") }.help("Share or add a person")
-            }.buttonStyle(.plain).foregroundStyle(accent).padding(.bottom, 28)
+            }.buttonStyle(.plain).foregroundStyle(accent).padding(.bottom, 12)
             if note.kind == "Meeting" { MeetingControls(store: store, noteID: id).padding(.bottom, 12) }
-            TextField("Untitled spark", text: textBinding(\.title), axis: .vertical).font(.system(size: compact ? 27 : 32, weight: .medium, design: .serif)).textFieldStyle(.plain).padding(.bottom, 10)
-            HStack { Text(note.updated, format: .dateTime.month(.wide).day().hour().minute()); Text("·"); Text("\(note.body.split { $0.isWhitespace || $0.isNewline }.count) words") }.font(.system(size: 10)).foregroundStyle(muted).padding(.bottom, 20)
+            TextField("Untitled spark", text: textBinding(\.title), axis: .vertical).font(.system(size: compact ? 25 : 29, weight: .medium, design: .serif)).textFieldStyle(.plain).padding(.bottom, 10)
+            HStack { Text(note.updated, format: .dateTime.month(.wide).day().hour().minute()); Text("·"); Text("\(note.body.split { $0.isWhitespace || $0.isNewline }.count) words") }.font(.system(size: 10)).foregroundStyle(muted).padding(.bottom, 10)
             if !store.collections(for: note).isEmpty {
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 12) {
@@ -236,7 +236,7 @@ struct NoteEditor: View {
                     }
                     if !note.summary.isEmpty { Text(note.summary).font(.system(size: 13)).lineSpacing(4).fixedSize(horizontal: false, vertical: true) }
                     else { Text("A summary of this note and its actions will appear here.").font(.system(size: 12)).foregroundStyle(muted) }
-                }.padding(14).frame(maxWidth: .infinity, alignment: .leading).background(panel).padding(.bottom, 16)
+                }.padding(10).frame(maxWidth: .infinity, alignment: .leading).background(panel).padding(.bottom, 10)
             }
             if !note.people.isEmpty || note.reminder != nil {
                 HStack { ForEach(note.people, id: \.self) { name in Menu { Button("Remove person") { store.update(id) { $0.people.removeAll { $0 == name } } } } label: { Pill(text: "@" + name) }.menuStyle(.borderlessButton).fixedSize() }; if let date = note.reminder { Menu { Button("Cancel reminder") { store.cancelReminder(id) } } label: { Label(date.formatted(.dateTime.month(.abbreviated).day().hour().minute()), systemImage: "bell").font(.system(size: 10)).foregroundStyle(accent) }.menuStyle(.borderlessButton) } }.padding(.bottom, 12)
@@ -254,7 +254,7 @@ struct NoteEditor: View {
                 } label: { Label("Table", systemImage: "tablecells").foregroundStyle(accent) }.menuStyle(.borderlessButton).frame(width: 80)
                 Button { NSPasteboard.general.clearContents(); NSPasteboard.general.setString(note.exportMarkdown, forType: .string); store.status = "Markdown copied" } label: { Image(systemName: "doc.on.doc") }.buttonStyle(.plain).help("Copy Markdown, including table colors")
             }.padding(.bottom, 12)
-            HStack(alignment: .top, spacing: 20) {
+            HStack(alignment: .top, spacing: 14) {
                 Group {
             if preview {
                 MarkdownPreview(source: note.body, documents: note.documents ?? [], removeDocument: removeDocument, images: note.images ?? [], changeImage: changeImage, removeImage: removeImage) { editingTable = $0 }.frame(maxHeight: .infinity)
@@ -272,13 +272,6 @@ struct NoteEditor: View {
                     MarkdownEditor(text: textBinding(\.body), focus: focused, importImages: importImages) { range in
                         tableInsertion = range; insertionSource = note.body; showTablePicker = true
                     }
-                }
-                if !(note.images ?? []).isEmpty || !(note.documents ?? []).isEmpty {
-                    ScrollView { LazyVStack {
-                        ForEach(note.documents ?? []) { document in DocumentCard(document: document) { removeDocument(document.id) } }
-                        ForEach(note.images ?? []) { image in
-                        NoteImageCard(image: image, change: changeImage) { removeImage(image.id) }
-                    } } }.frame(maxHeight: 230)
                 }
                 }
             }
@@ -316,11 +309,15 @@ struct NoteEditor: View {
                                 }
                         }
                     } }.frame(maxHeight: .infinity)
-                }.padding(.top, 6).frame(width: 220, alignment: .topLeading)
+                    if !(note.documents ?? []).isEmpty || !(note.images ?? []).isEmpty {
+                        Divider()
+                        AttachmentSidebar(images: note.images ?? [], documents: note.documents ?? [], changeImage: changeImage, removeImage: removeImage, removeDocument: removeDocument)
+                    }
+                }.padding(.top, 6).frame(width: 220, alignment: .topLeading).frame(maxHeight: .infinity)
             }.frame(maxWidth: .infinity, maxHeight: .infinity)
             HStack { ForEach(Array(note.tags.prefix(compact ? 2 : 4)), id: \.self) { Pill(text: "#" + $0) }; Spacer(); Button { addAction() } label: { Label("Add action", systemImage: "checklist").font(.system(size: 10)) }.buttonStyle(.plain).foregroundStyle(accent) }.padding(.vertical, 12)
             HStack { Circle().fill(store.status.hasPrefix("Saved") ? Color.black : accent).frame(width: 4, height: 4); Text(store.status).lineLimit(2); Spacer(); Text("@ to connect") }.font(.system(size: 9)).foregroundStyle(muted)
-        }.padding(compact ? 24 : 30).frame(maxWidth: .infinity, maxHeight: .infinity).background(ink).foregroundStyle(.black).tint(.black).preferredColorScheme(.light)
+        }.padding(compact ? 16 : 20).frame(maxWidth: .infinity, maxHeight: .infinity).background(ink).foregroundStyle(.black).tint(.black).preferredColorScheme(.light)
             .onAppear { if compact { focused = true } }
             .onChange(of: note.body) { old, new in
                 if new.count > old.count && new.hasSuffix("@") { showActions = true }
@@ -409,7 +406,7 @@ struct CaptureView: View {
             HStack { Brand(small: true); Spacer(); Text("QUICK CAPTURE").font(.system(size: 8, weight: .semibold)).tracking(1.5).foregroundStyle(accent); Button(action: dismiss) { Image(systemName: "xmark").foregroundStyle(muted) }.buttonStyle(.plain).keyboardShortcut(.escape, modifiers: []) }.padding(.horizontal, 24).padding(.vertical, 18)
             Rectangle().fill(accent.opacity(0.15)).frame(height: 1)
             NoteEditor(store: store, id: id, compact: true).id(id)
-            HStack { Button(action: browse) { Label("Open sanctuary", systemImage: "sidebar.left") }.buttonStyle(.plain).foregroundStyle(muted); Spacer(); Button(action: dismiss) { Text("Keep this thought  ↵").font(.system(size: 12, weight: .semibold)).padding(.horizontal, 16).padding(.vertical, 10).background(accent, in: RoundedRectangle(cornerRadius: 0)).foregroundStyle(ink) }.buttonStyle(.plain).keyboardShortcut(.return, modifiers: .command) }.font(.system(size: 11)).padding(.horizontal, 24).padding(.bottom, 20)
+            HStack { Button(action: browse) { Label("Open sanctuary", systemImage: "sidebar.left") }.buttonStyle(.plain).foregroundStyle(muted); Spacer(); Button(action: dismiss) { Text("Keep this thought  ↵").font(.system(size: 12, weight: .semibold)).padding(.horizontal, 16).padding(.vertical, 10).background(accent, in: RoundedRectangle(cornerRadius: 0)).foregroundStyle(ink) }.buttonStyle(.plain).keyboardShortcut(.return, modifiers: .command) }.font(.system(size: 11)).padding(.horizontal, 24).padding(.bottom, 10)
         }.background(ink).foregroundStyle(.black).tint(.black).preferredColorScheme(.light)
     }
 }
