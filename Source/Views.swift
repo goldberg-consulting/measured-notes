@@ -131,6 +131,7 @@ struct NoteEditor: View {
     let id: UUID
     var compact = false
     @State private var showActions = false
+    @State private var actionSourceWindow: NSWindow?
     @State private var showCollections = false
     @State private var preview = false
     @State private var editingTable: MarkdownTable?
@@ -213,7 +214,7 @@ struct NoteEditor: View {
                 Button { showCollections = true } label: { Label("Organize", systemImage: "folder") }.help("Assign folders, products, and flows")
                 Button { store.update(id) { $0.pinned.toggle() } } label: { Image(systemName: note.pinned ? "pin.fill" : "pin") }.help("Pin note")
                 Button { showReminder = true } label: { Image(systemName: "bell.badge") }.help("Set a reminder")
-                Button { showActions.toggle() } label: { Image(systemName: "at") }.help("Share or add a person")
+                Button { if showActions { showActions = false } else { openActions() } } label: { Image(systemName: "at") }.help("Share or add a person")
             }.buttonStyle(.plain).foregroundStyle(accent).padding(.bottom, 12)
             if note.kind == "Meeting" { MeetingControls(store: store, noteID: id).padding(.bottom, 12) }
             TextField("Untitled spark", text: textBinding(\.title), axis: .vertical).font(.system(size: compact ? 25 : 29, weight: .medium, design: .serif)).textFieldStyle(.plain).padding(.bottom, 10)
@@ -320,7 +321,7 @@ struct NoteEditor: View {
         }.padding(compact ? 16 : 20).frame(maxWidth: .infinity, maxHeight: .infinity).background(ink).foregroundStyle(.black).tint(.black).preferredColorScheme(.light)
             .onAppear { if compact { focused = true } }
             .onChange(of: note.body) { old, new in
-                if new.count > old.count && new.hasSuffix("@") { showActions = true }
+                if new.count > old.count && new.hasSuffix("@") { openActions() }
                 if new != old && (new == "/table" || new.hasSuffix("\n/table")) { tableInsertion = nil; showTablePicker = true }
             }
             .sheet(isPresented: $showCollections) { CollectionsSheet(store: store, noteID: id) }
@@ -352,12 +353,13 @@ struct NoteEditor: View {
                 }
             }
             .popover(isPresented: $showActions) {
-                VStack(alignment: .leading, spacing: 6) {
-                    Text("CONNECT THIS THOUGHT").font(.system(size: 9, weight: .semibold)).tracking(1.4).foregroundStyle(accent).padding(.bottom, 8)
-                    action("Draft an email", icon: "envelope", detail: "Open your mail composer") { share(.composeEmail) }
-                    action("Draft a text", icon: "message", detail: "Open Messages to choose a recipient") { share(.composeMessage) }
-                    action("Add a person", icon: "person.badge.plus", detail: "Keep someone attached to this note") { showActions = false; showPerson = true }
-                }.padding(18).frame(width: 290).background(panel)
+                ConnectMenu(sourceWindow: actionSourceWindow, select: { index in
+                    switch index {
+                    case 0: share(.composeEmail)
+                    case 1: share(.composeMessage)
+                    default: showActions = false; showPerson = true
+                    }
+                }, dismiss: { showActions = false })
             }
             .sheet(isPresented: $showPerson) {
                 VStack(alignment: .leading, spacing: 18) { Text("Who’s part of this thought?").font(.title3); TextField("Name, email, or phone", text: $person).textFieldStyle(.roundedBorder); Text("People are local note labels. This does not invite or notify them.").font(.caption).foregroundStyle(muted); HStack { Button("Cancel") { showPerson = false }; Spacer(); Button("Add person") { let name = person.trimmingCharacters(in: .whitespacesAndNewlines); if !name.isEmpty { store.update(id) { if !$0.people.contains(name) { $0.people.append(name) }; if $0.body.hasSuffix("@") { $0.body.removeLast() } }; person = ""; showPerson = false } }.disabled(person.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty).keyboardShortcut(.defaultAction) } }.padding(24).frame(width: 360)
@@ -382,9 +384,7 @@ struct NoteEditor: View {
             change(&note.actions![index])
         }
     }
-    func action(_ title: String, icon: String, detail: String, run: @escaping () -> Void) -> some View {
-        Button(action: run) { HStack(spacing: 12) { Image(systemName: icon).font(.system(size: 17)).foregroundStyle(accent).frame(width: 22); VStack(alignment: .leading, spacing: 4) { Text(title).font(.system(size: 12, weight: .medium)); Text(detail).font(.system(size: 10)).foregroundStyle(muted) }; Spacer() }.padding(.vertical, 8).contentShape(Rectangle()) }.buttonStyle(.plain)
-    }
+    func openActions() { actionSourceWindow = NSApp.keyWindow; showActions = true }
     func share(_ name: NSSharingService.Name) {
         showActions = false
         if note.body.hasSuffix("@") { store.update(id) { $0.body.removeLast() } }

@@ -99,3 +99,5 @@ Right-click the note-list header or empty space to create a note, example, check
 Attachments share the right column with Actions; they no longer shorten the Markdown editor. The attachment list has its own bounded scroll area and can be collapsed. Use a document’s menu to open, save, or remove it. Click an image row to edit its size or caption.
 
 Images and document bytes are embedded in `notes.json`, not linked to the original files. The Markdown references identify attachment placement within a note. SQLite exports store the bytes in the `images` and `documents` tables.
+
+The `@` action menu supports Up/Down (or Tab/Shift-Tab) to select, Return to activate, and Escape to dismiss. The selected action is highlighted.
