@@ -30,6 +30,17 @@ struct NoteImage: Codable, Identifiable, Equatable {
     var markdown: String { "![Image](measured-image:\(id.uuidString))" }
 }
 
+struct NoteDocument: Codable, Identifiable, Equatable {
+    var id = UUID()
+    var name: String
+    var data: Data
+    var added = Date()
+    var markdown: String {
+        let label = name.replacingOccurrences(of: "\\", with: "\\\\").replacingOccurrences(of: "[", with: "\\[").replacingOccurrences(of: "]", with: "\\]").replacingOccurrences(of: "\n", with: " ")
+        return "[\(label)](measured-document:\(id.uuidString))"
+    }
+}
+
 struct TranscriptSegment: Codable, Identifiable, Equatable {
     var id = UUID()
     var seconds: Double
@@ -67,6 +78,7 @@ struct Note: Codable, Identifiable, Equatable {
     var actions: [NoteAction]?
     var collectionIDs: [UUID]?
     var images: [NoteImage]?
+    var documents: [NoteDocument]?
     var recordings: [MeetingRecording]?
     var displayTitle: String { title.isEmpty ? "Untitled spark" : title }
     var tasks: [NoteAction] { actions ?? [] }

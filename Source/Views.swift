@@ -1,5 +1,6 @@
 import SwiftUI
 import AppKit
+import UniformTypeIdentifiers
 
 let accent = Color.black
 let ink = Color.white
@@ -39,7 +40,15 @@ struct LibraryView: View {
     @State private var showCollectionSheet = false
     @State private var newCollectionKind = "Folder"
     @State private var organizeNoteID: UUID?
+    @State private var listRegions: [String: CGRect] = [:]
     @State private var sidebarRegions: [UUID: CGRect] = [:]
+    var listPassThroughRegions: [CGRect] {
+        let viewport = listRegions["viewport"] ?? .null
+        return listRegions.compactMap { key, rect in
+            if key == "search" { return rect }
+            return key.hasPrefix("row:") ? rect.intersection(viewport) : nil
+        }
+    }
     var body: some View {
         HStack(spacing: 0) {
             VStack(alignment: .leading, spacing: 0) {
@@ -74,6 +83,7 @@ struct LibraryView: View {
                     VStack(alignment: .leading, spacing: 0) {
                         HStack { Text(store.filterTitle).font(.system(size: 19, weight: .medium, design: .serif)); Spacer(); Menu { Button("Note") { store.create() }; Button("Example") { store.create(kind: "Example") }; Button("Checklist") { store.create(kind: "To-do") }; Button("Meeting") { store.create(kind: "Meeting") } } label: { Image(systemName: "square.and.pencil").foregroundStyle(accent) }.menuStyle(.borderlessButton).frame(width: 28) }.padding(20)
                         HStack { Image(systemName: "magnifyingglass"); TextField("Search your thoughts", text: $store.search).textFieldStyle(.plain) }.font(.system(size: 11)).foregroundStyle(muted).padding(10).background(ink.opacity(0.6), in: RoundedRectangle(cornerRadius: 0)).padding(.horizontal, 16).padding(.bottom, 14)
+                            .background(GeometryReader { geometry in Color.clear.preference(key: NoteListRegions.self, value: ["search": geometry.frame(in: .named("note-list"))]) })
                         ScrollView {
                             LazyVStack(spacing: 6) {
                                 ForEach(store.filtered) { note in
@@ -85,12 +95,20 @@ struct LibraryView: View {
                                             HStack { ForEach(Array(note.tags.prefix(2)), id: \.self) { Pill(text: "#" + $0) }; Spacer(); if note.openTasks > 0 { Label("\(note.openTasks)", systemImage: "checkmark.circle").font(.system(size: 10)).foregroundStyle(muted) } }
                                         }.padding(15).frame(maxWidth: .infinity, alignment: .leading).background(store.selected == note.id ? accent.opacity(0.08) : .clear, in: RoundedRectangle(cornerRadius: 0)).overlay(RoundedRectangle(cornerRadius: 0).stroke(store.selected == note.id ? accent : .clear))
                                     }.buttonStyle(.plain).contextMenu { creationMenu; Divider(); Button("Assign collections…") { organizeNoteID = note.id; showCollectionSheet = true }; Button(note.pinned ? "Unpin" : "Pin") { store.update(note.id) { $0.pinned.toggle() } }; Button("Delete note", role: .destructive) { deleteTarget = note.id } }
+                                        .background(GeometryReader { geometry in Color.clear.preference(key: NoteListRegions.self, value: ["row:" + note.id.uuidString: geometry.frame(in: .named("note-list"))]) })
                                 }
                                 if store.filtered.isEmpty { Text("No notes here yet.").foregroundStyle(muted).padding(25) }
                             }.padding(.horizontal, 10)
-                        }
+                        }.background(GeometryReader { geometry in Color.clear.preference(key: NoteListRegions.self, value: ["viewport": geometry.frame(in: .named("note-list"))]) })
                         Text("\(store.filtered.count) thoughts, safely kept").font(.system(size: 10)).foregroundStyle(muted).padding(18)
-                    }.frame(width: 285).background { Rectangle().fill(panel).contextMenu { creationMenu } }
+                    }.frame(width: 285).background(panel)
+                        .coordinateSpace(name: "note-list")
+                        .onPreferenceChange(NoteListRegions.self) { listRegions = $0 }
+                        .overlay {
+                            SidebarContextMenu(regions: [:], passThroughRegions: listPassThroughRegions, createNote: { kind, _ in store.create(kind: kind) }, createCollection: { kind in
+                                newCollectionKind = kind; organizeNoteID = nil; showCollectionSheet = true
+                            }, manage: { organizeNoteID = nil; showCollectionSheet = true })
+                        }
                     Rectangle().fill(Color.black.opacity(0.18)).frame(width: 1)
                     if let id = store.selected, store.selectedNote != nil { NoteEditor(store: store, id: id).id(id) }
                     else { VStack(spacing: 15) { Image(systemName: "bolt.shield").font(.system(size: 44)).foregroundStyle(accent); Text("Leave a little lightning here.").font(.system(size: 23, design: .serif)); Button("Create a note") { store.create() } }.frame(maxWidth: .infinity, maxHeight: .infinity) }
@@ -142,8 +160,34 @@ struct NoteEditor: View {
         }
     }
     func importImages(_ pasteboard: NSPasteboard) -> String? {
-        do { return addImages(try ImageImport.read(pasteboard)) }
+        do {
+            let urls = pasteboard.readObjects(forClasses: [NSURL.self], options: [.urlReadingFileURLsOnly: true]) as? [URL] ?? []
+            if !urls.isEmpty { return try addFiles(urls) }
+            return addImages(try ImageImport.read(pasteboard))
+        }
         catch { NSAlert(error: error).runModal(); return nil }
+    }
+    func addFiles(_ urls: [URL]) throws -> String? {
+        let imported = try DocumentImport.read(urls)
+        guard !imported.markdown.isEmpty else { return nil }
+        store.update(id) {
+            $0.images = ($0.images ?? []) + imported.images
+            $0.documents = ($0.documents ?? []) + imported.documents
+        }
+        return imported.markdown.joined(separator: "\n")
+    }
+    func chooseDocuments() {
+        let panel = NSOpenPanel(); panel.canChooseDirectories = false; panel.allowsMultipleSelection = true
+        panel.allowedContentTypes = DocumentImport.extensions.compactMap { UTType(filenameExtension: $0) }
+        guard panel.runModal() == .OK else { return }
+        do { if let markdown = try addFiles(panel.urls) { store.update(id) { $0.body += "\n" + markdown + "\n" } } }
+        catch { NSAlert(error: error).runModal() }
+    }
+    func removeDocument(_ documentID: UUID) {
+        store.update(id) { note in
+            if let document = note.documents?.first(where: { $0.id == documentID }) { note.body = note.body.replacingOccurrences(of: document.markdown, with: "") }
+            note.documents?.removeAll { $0.id == documentID }
+        }
     }
     func addImages(_ images: [NoteImage]) -> String? {
         guard !images.isEmpty else { return nil }
@@ -200,6 +244,7 @@ struct NoteEditor: View {
             HStack(spacing: 12) {
                 Picker("Editor mode", selection: $preview) { Text("Markdown").tag(false); Text("Preview").tag(true) }.pickerStyle(.segmented).labelsHidden().frame(width: 180)
                 Spacer()
+                Button { chooseDocuments() } label: { Image(systemName: "paperclip") }.buttonStyle(.plain).help("Attach documents")
                 Button { chooseImages() } label: { Image(systemName: "photo.badge.plus") }.buttonStyle(.plain).help("Add images")
                 Menu {
                     Button("New table…") { tableInsertion = nil; showTablePicker = true }
@@ -212,10 +257,10 @@ struct NoteEditor: View {
             HStack(alignment: .top, spacing: 20) {
                 Group {
             if preview {
-                MarkdownPreview(source: note.body, images: note.images ?? [], changeImage: changeImage, removeImage: removeImage) { editingTable = $0 }.frame(maxHeight: .infinity)
+                MarkdownPreview(source: note.body, documents: note.documents ?? [], removeDocument: removeDocument, images: note.images ?? [], changeImage: changeImage, removeImage: removeImage) { editingTable = $0 }.frame(maxHeight: .infinity)
                     .dropDestination(for: URL.self) { urls, _ in
                         do {
-                            guard let markdown = addImages(try urls.map { try ImageImport.read($0) }) else { return false }
+                            guard let markdown = try addFiles(urls) else { return false }
                             store.update(id) { $0.body += "\n" + markdown + "\n" }
                             return true
                         } catch { NSAlert(error: error).runModal(); return false }
@@ -228,8 +273,10 @@ struct NoteEditor: View {
                         tableInsertion = range; insertionSource = note.body; showTablePicker = true
                     }
                 }
-                if !(note.images ?? []).isEmpty {
-                    ScrollView { LazyVStack { ForEach(note.images ?? []) { image in
+                if !(note.images ?? []).isEmpty || !(note.documents ?? []).isEmpty {
+                    ScrollView { LazyVStack {
+                        ForEach(note.documents ?? []) { document in DocumentCard(document: document) { removeDocument(document.id) } }
+                        ForEach(note.images ?? []) { image in
                         NoteImageCard(image: image, change: changeImage) { removeImage(image.id) }
                     } } }.frame(maxHeight: 230)
                 }

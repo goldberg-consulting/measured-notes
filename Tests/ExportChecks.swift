@@ -13,6 +13,7 @@ import SQLite3
         let image = NoteImage(name: "Picture.png", data: Data([0, 1, 127, 255]), caption: "A caption", width: 320)
         note.images = [image]
         note.recordings = [MeetingRecording(fileName: "recording.mp4", locale: "en-US", microphone: true, transcript: [TranscriptSegment(seconds: 12.5, speaker: "Eli", text: "Meeting text")])]
+        note.documents = [NoteDocument(name: "Reference.pdf", data: Data([10, 0, 254])), NoteDocument(name: "Empty.txt", data: Data())]
         let archive = NotesArchive(notes: [note, Note()], collections: [collection])
         let output = directory.appendingPathComponent("notes.sqlite")
         try NotesExport.sqlite(archive, to: output)
@@ -28,7 +29,7 @@ import SQLite3
             return String(decoding: UnsafeBufferPointer(start: bytes, count: Int(sqlite3_column_bytes(statement, 0))), as: UTF8.self)
         }
         precondition(query("PRAGMA integrity_check") == "ok")
-        precondition(query("PRAGMA user_version") == "3")
+        precondition(query("PRAGMA user_version") == "4")
         precondition(query("SELECT body FROM notes WHERE position=0") == note.body)
         precondition(query("SELECT title FROM notes WHERE position=0") == note.title)
         precondition(query("SELECT count(*) FROM notes") == "2")
@@ -43,6 +44,9 @@ import SQLite3
         precondition(query("SELECT speaker FROM transcript_segments") == "Eli")
         precondition(query("SELECT seconds FROM transcript_segments") == "12.5")
         precondition(query("SELECT locale FROM recordings") == "en-US")
+        precondition(query("SELECT hex(data) FROM documents WHERE position=0") == "0A00FE")
+        precondition(query("SELECT name FROM documents WHERE position=0") == "Reference.pdf")
+        precondition(query("SELECT length(data) FROM documents WHERE position=1") == "0")
         let decoded = try JSONDecoder().decode(NotesArchive.self, from: Data(query("SELECT json FROM archive").utf8))
         precondition(decoded.notes == archive.notes && decoded.collections == archive.collections)
         let json = directory.appendingPathComponent("notes.json")

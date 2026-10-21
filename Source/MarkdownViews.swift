@@ -119,6 +119,8 @@ struct TablePreview: View {
 
 struct MarkdownPreview: View {
     let source: String
+    var documents: [NoteDocument] = []
+    var removeDocument: (UUID) -> Void = { _ in }
     var images: [NoteImage] = []
     var changeImage: (NoteImage) -> Void = { _ in }
     var removeImage: (UUID) -> Void = { _ in }
@@ -152,6 +154,9 @@ struct MarkdownPreview: View {
                 ForEach(blocks) { block in
                     if let table = block.table { TablePreview(table: table) { editTable(table) } }
                     else if block.kind == "code" { Text(block.text).font(.system(size: 12, design: .monospaced)).textSelection(.enabled).padding(12).frame(maxWidth: .infinity, alignment: .leading).background(panel, in: RoundedRectangle(cornerRadius: 0)) }
+                    else if let document = documents.first(where: { $0.markdown == block.text.trimmingCharacters(in: .whitespaces) }) {
+                        DocumentCard(document: document) { removeDocument(document.id) }
+                    }
                     else if let image = images.first(where: { $0.markdown == block.text.trimmingCharacters(in: .whitespaces) }) {
                         NoteImageCard(image: image, change: changeImage) { removeImage(image.id) }
                     }

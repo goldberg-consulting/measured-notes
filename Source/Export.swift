@@ -43,7 +43,9 @@ enum NotesExport {
                     }
                 } else { try check(sqlite3_bind_null(statement, Int32(index + 1))) }
             }
-            if let data {
+            if let data, data.isEmpty {
+                try check(sqlite3_bind_zeroblob(statement, Int32(values.count + 1), 0))
+            } else if let data {
                 try data.withUnsafeBytes { bytes in
                     try check(sqlite3_bind_blob(statement, Int32(values.count + 1), bytes.baseAddress, Int32(bytes.count), unsafeBitCast(-1, to: sqlite3_destructor_type.self)))
                 }
@@ -51,7 +53,7 @@ enum NotesExport {
             try check(sqlite3_step(statement))
         }
         try execute("""
-        PRAGMA user_version = 3;
+        PRAGMA user_version = 4;
         BEGIN TRANSACTION;
         CREATE TABLE metadata (key TEXT PRIMARY KEY, value TEXT NOT NULL);
         CREATE TABLE notes (id TEXT PRIMARY KEY, position INTEGER NOT NULL, title TEXT NOT NULL, body TEXT NOT NULL, kind TEXT NOT NULL, updated_at TEXT NOT NULL, pinned INTEGER NOT NULL, summary TEXT NOT NULL, reminder_at TEXT);
@@ -63,12 +65,13 @@ enum NotesExport {
         CREATE TABLE images (id TEXT PRIMARY KEY, note_id TEXT NOT NULL REFERENCES notes(id), position INTEGER NOT NULL, name TEXT NOT NULL, caption TEXT NOT NULL, width REAL NOT NULL, mime_type TEXT NOT NULL, data BLOB NOT NULL);
         CREATE TABLE recordings (id TEXT PRIMARY KEY, note_id TEXT NOT NULL REFERENCES notes(id), position INTEGER NOT NULL, started_at TEXT NOT NULL, file_name TEXT NOT NULL, locale TEXT NOT NULL, microphone INTEGER NOT NULL, status TEXT NOT NULL);
         CREATE TABLE transcript_segments (id TEXT PRIMARY KEY, recording_id TEXT NOT NULL REFERENCES recordings(id), position INTEGER NOT NULL, seconds REAL NOT NULL, speaker TEXT NOT NULL, text TEXT NOT NULL);
+        CREATE TABLE documents (id TEXT PRIMARY KEY, note_id TEXT NOT NULL REFERENCES notes(id), position INTEGER NOT NULL, name TEXT NOT NULL, added_at TEXT NOT NULL, data BLOB NOT NULL);
         CREATE TABLE archive (id INTEGER PRIMARY KEY CHECK (id = 1), json TEXT NOT NULL);
         """)
         let dates = ISO8601DateFormatter()
         dates.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
         try insert("INSERT INTO metadata VALUES (?, ?)", ["exported_at", dates.string(from: Date())])
-        try insert("INSERT INTO metadata VALUES (?, ?)", ["format", "one.measured.notes.sqlite.v3"])
+        try insert("INSERT INTO metadata VALUES (?, ?)", ["format", "one.measured.notes.sqlite.v4"])
         let encoded = try JSONEncoder().encode(archive)
         try insert("INSERT INTO archive VALUES (1, ?)", [String(decoding: encoded, as: UTF8.self)])
         for (position, note) in archive.notes.enumerated() {
@@ -76,6 +79,9 @@ enum NotesExport {
             try insert("INSERT INTO notes VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)", [id, String(position), note.title, note.body, note.kind, dates.string(from: note.updated), note.pinned ? "1" : "0", note.summary, note.reminder.map { dates.string(from: $0) }])
             for (position, action) in note.tasks.enumerated() {
                 try insert("INSERT INTO actions VALUES (?, ?, ?, ?, ?, ?)", [action.id.uuidString, id, String(position), action.text, action.completed ? "1" : "0", action.parentID?.uuidString])
+            }
+            for (position, document) in (note.documents ?? []).enumerated() {
+                try insert("INSERT INTO documents VALUES (?, ?, ?, ?, ?, ?)", [document.id.uuidString, id, String(position), document.name, dates.string(from: document.added)], data: document.data)
             }
             for (position, recording) in (note.recordings ?? []).enumerated() {
                 try insert("INSERT INTO recordings VALUES (?, ?, ?, ?, ?, ?, ?, ?)", [recording.id.uuidString, id, String(position), dates.string(from: recording.started), recording.fileName, recording.locale, recording.microphone ? "1" : "0", recording.status])

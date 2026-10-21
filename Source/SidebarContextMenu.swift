@@ -9,6 +9,7 @@ struct SidebarRegions: PreferenceKey {
 // Observe right-clicks across the sidebar without intercepting ordinary clicks or scrolling.
 final class SidebarMenuView: NSView {
     var regions: [UUID: CGRect] = [:]
+    var passThroughRegions: [CGRect] = []
     var createNote: ((String, UUID?) -> Void)?
     var createCollection: ((String) -> Void)?
     var manage: (() -> Void)?
@@ -25,6 +26,7 @@ final class SidebarMenuView: NSView {
                   event.type == .rightMouseDown || event.modifierFlags.contains(.control),
                   self.bounds.contains(self.convert(event.locationInWindow, from: nil)) else { return event }
             let point = self.convert(event.locationInWindow, from: nil)
+            if self.passThroughRegions.contains(where: { $0.contains(point) }) { return event }
             self.clickedCollection = self.regions.first(where: { $0.value.contains(point) })?.key
             NSMenu.popUpContextMenu(self.makeMenu(), with: event, for: self)
             return nil
@@ -33,7 +35,7 @@ final class SidebarMenuView: NSView {
     deinit { if let monitor { NSEvent.removeMonitor(monitor) } }
     private func makeMenu() -> NSMenu {
         let menu = NSMenu()
-        for (label, kind) in [("note", "Note"), ("example", "Example"), ("meeting note", "Meeting")] {
+        for (label, kind) in [("note", "Note"), ("example", "Example"), ("checklist", "To-do"), ("meeting note", "Meeting")] {
             let item = NSMenuItem(title: "New " + label + (clickedCollection == nil ? "" : " here"), action: #selector(newNote(_:)), keyEquivalent: "")
             item.target = self; item.representedObject = kind; menu.addItem(item)
         }
@@ -54,11 +56,20 @@ final class SidebarMenuView: NSView {
 
 struct SidebarContextMenu: NSViewRepresentable {
     var regions: [UUID: CGRect]
+    var passThroughRegions: [CGRect] = []
     var createNote: (String, UUID?) -> Void
     var createCollection: (String) -> Void
     var manage: () -> Void
     func makeNSView(context: Context) -> SidebarMenuView { SidebarMenuView() }
     func updateNSView(_ view: SidebarMenuView, context: Context) {
+        view.passThroughRegions = passThroughRegions
         view.regions = regions; view.createNote = createNote; view.createCollection = createCollection; view.manage = manage
+    }
+}
+
+struct NoteListRegions: PreferenceKey {
+    static let defaultValue: [String: CGRect] = [:]
+    static func reduce(value: inout [String: CGRect], nextValue: () -> [String: CGRect]) {
+        value.merge(nextValue(), uniquingKeysWith: { _, new in new })
     }
 }

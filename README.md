@@ -41,7 +41,7 @@ Use **File → Show notes storage in Finder** to find it.
 
 Use **File → Export all notes as SQLite…** or **Export all notes as JSON…** to save a portable snapshot. Exports include all notes, checklists and subitems, collection assignments, tags, people, summaries, and reminders. Exporting does not change the app’s storage. SQLite exports are snapshots; editing them does not update the app, and there is no import command yet.
 
-The SQLite file has `notes`, `actions`, `collections`, `note_collections`, `tags`, `people`, `images`, `recordings`, and `transcript_segments` tables. Dates use UTC ISO 8601 strings; `position` preserves list order. `PRAGMA user_version` is the schema version (currently 3). The `archive` table also holds a complete JSON copy for lossless conversion. Table color metadata remains in the Markdown body.
+The SQLite file has `notes`, `actions`, `collections`, `note_collections`, `tags`, `people`, `images`, `recordings`, `transcript_segments`, and `documents` tables. Dates use UTC ISO 8601 strings; `position` preserves list order. `PRAGMA user_version` is the schema version (currently 4). The `archive` table also holds a complete JSON copy for lossless conversion. Table color metadata remains in the Markdown body.
 
 Back up the storage folder to keep a copy. There is no account, server, or cloud sync. The app does not upload notes to a model service.
 
@@ -85,3 +85,11 @@ Expand **Recordings** to play or save a video, open its transcript, or retry tra
 Videos are stored under `~/Library/Application Support/one.measured.notes/Recordings/`. Back up the whole storage folder to retain them. JSON and SQLite exports contain transcripts and recording metadata, but not video bytes; use **Save video…** for a portable MP4. Deleting a note does not erase its recording files.
 
 macOS may request microphone and capture permission. The app shows a recording timer and macOS displays its capture indicator. Quitting is blocked while capture or transcription is active; stop recording or cancel transcription first.
+
+## Documents
+
+Drop PDFs, Office documents, spreadsheets, presentations, or text files into the editor or Preview. You can also use the paperclip button. Each file is stored as an attached copy and appears as a document card with Open, Save, and Remove controls. Moving or deleting the original file does not affect the attachment. Opening creates a temporary copy; edits in another app do not update the attachment.
+
+Documents are attached as files; their text is not inserted into the note or automatically summarized. SQLite exports include their original bytes in the `documents` table, and JSON exports include them as base64. Markdown references alone do not include the attached files. Files must be under 25 MB each and each drop under 50 MB. Folders and document packages are not supported.
+
+Right-click the note-list header or empty space to create a note, example, checklist, or meeting note. Note rows retain their own menus. New notes inherit the selected collection.
