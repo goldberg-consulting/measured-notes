@@ -89,7 +89,7 @@ struct CollectionSidebar: View {
                         ForEach(items) { collection in
                             Button { store.browseCollection(collection.id) } label: {
                                 HStack(spacing: 8) { Image(systemName: collection.icon).frame(width: 14); Text(collection.name).lineLimit(1); Spacer(); Text("\(store.notes.filter { ($0.collectionIDs ?? []).contains(collection.id) }.count)").font(.system(size: 10)) }
-                                    .font(.system(size: 11)).padding(.vertical, 8).padding(.horizontal, 6).foregroundStyle(.black).background(store.activeCollection?.id == collection.id ? Color.black.opacity(0.09) : .clear)
+                                    .font(.system(size: 11)).padding(.vertical, 8).padding(.horizontal, 6).foregroundStyle(.black).background(store.activeCollection?.id == collection.id ? Color.black.opacity(0.09) : .clear).contentShape(Rectangle())
                             }.buttonStyle(.plain)
                                 .background(GeometryReader { proxy in Color.clear.preference(key: SidebarRegions.self, value: [collection.id: proxy.frame(in: .named("collection-sidebar"))]) })
                                 .contextMenu {

@@ -14,7 +14,10 @@ import SQLite3
         note.images = [image]
         note.recordings = [MeetingRecording(fileName: "recording.mp4", locale: "en-US", microphone: true, transcript: [TranscriptSegment(seconds: 12.5, speaker: "Eli", text: "Meeting text")])]
         note.documents = [NoteDocument(name: "Reference.pdf", data: Data([10, 0, 254])), NoteDocument(name: "Empty.txt", data: Data())]
-        let archive = NotesArchive(notes: [note, Note()], collections: [collection])
+        let source = Note(title: "Source")
+        note.originID = source.id
+        note.created = Date(timeIntervalSince1970: 100)
+        let archive = NotesArchive(notes: [note, source], collections: [collection])
         let output = directory.appendingPathComponent("notes.sqlite")
         try NotesExport.sqlite(archive, to: output)
         var db: OpaquePointer?
@@ -29,10 +32,12 @@ import SQLite3
             return String(decoding: UnsafeBufferPointer(start: bytes, count: Int(sqlite3_column_bytes(statement, 0))), as: UTF8.self)
         }
         precondition(query("PRAGMA integrity_check") == "ok")
-        precondition(query("PRAGMA user_version") == "4")
+        precondition(query("PRAGMA user_version") == "5")
         precondition(query("SELECT body FROM notes WHERE position=0") == note.body)
         precondition(query("SELECT title FROM notes WHERE position=0") == note.title)
         precondition(query("SELECT count(*) FROM notes") == "2")
+        precondition(query("SELECT origin_id FROM notes WHERE position=0") == source.id.uuidString)
+        precondition(query("SELECT created_at FROM notes WHERE position=0") == "1970-01-01T00:01:40.000Z")
         precondition(query("SELECT parent_id FROM actions WHERE position=1") == parent.id.uuidString)
         precondition(query("SELECT completed FROM actions WHERE position=1") == "1")
         precondition(query("SELECT collection_id FROM note_collections") == collection.id.uuidString)

@@ -70,6 +70,9 @@ struct Note: Codable, Identifiable, Equatable {
     var body = ""
     var kind = "Note"
     var updated = Date()
+    var created: Date?
+    var originID: UUID?
+    var timelineDate: Date { created ?? updated }
     var pinned = false
     var tags: [String] = []
     var people: [String] = []
@@ -176,18 +179,39 @@ struct Note: Codable, Identifiable, Equatable {
                 catch { canSave = false; status = "Could not back up notes before updating actions. Original preserved." }
             }
         }
-        for i in notes.indices { notes[i].migrateActions() }
+        for i in notes.indices {
+            notes[i].migrateActions()
+            if notes[i].created == nil { notes[i].created = notes[i].updated }
+        }
         selected = notes.first?.id
         save(); scheduleAnalysis()
     }
     @discardableResult func create(kind: String = "Note") -> UUID {
-        var n = Note(kind: kind)
+        var n = Note(kind: kind, created: Date())
         if kind == "Meeting" { n.body = "Discussion\n\nDecisions\n\nNext steps\n- [ ] " }
         if kind == "To-do" { n.body = "- [ ] " }
         if kind == "Example" { n.body = "## Context\n\n## Example\n\n## Takeaway\n" }
         n.migrateActions()
         if let collection = activeCollection { n.collectionIDs = [collection.id] }
         notes.insert(n, at: 0); selected = n.id; if activeCollection == nil { filter = "All notes" }; search = ""; save(); scheduleAnalysis(); return n.id
+    }
+    var timeline: [Note] {
+        filtered.sorted {
+            if $0.timelineDate != $1.timelineDate { return $0.timelineDate < $1.timelineDate }
+            return $0.id.uuidString < $1.id.uuidString
+        }
+    }
+    @discardableResult func createRelated(to sourceID: UUID, kind: String = "Note") -> UUID? {
+        guard let source = notes.first(where: { $0.id == sourceID }) else { return nil }
+        let id = create(kind: kind)
+        update(id) { $0.originID = sourceID; $0.collectionIDs = source.collectionIDs }
+        filter = "All notes"; search = ""
+        return id
+    }
+    func openNote(_ id: UUID) {
+        guard notes.contains(where: { $0.id == id }) else { return }
+        if !filtered.contains(where: { $0.id == id }) { filter = "All notes"; search = "" }
+        selected = id
     }
     func update(_ id: UUID, _ change: (inout Note) -> Void) {
         guard let i = notes.firstIndex(where: { $0.id == id }) else { return }
@@ -202,7 +226,9 @@ struct Note: Codable, Identifiable, Equatable {
     func delete(_ id: UUID) {
         guard recordingNoteID != id else { status = "Stop the meeting and finish transcription before deleting this note."; return }
         UNUserNotificationCenter.current().removePendingNotificationRequests(withIdentifiers: [id.uuidString])
-        notes.removeAll { $0.id == id }; selected = filtered.first?.id; save(); scheduleAnalysis()
+        notes.removeAll { $0.id == id }
+        for i in notes.indices where notes[i].originID == id { notes[i].originID = nil }
+        selected = filtered.first?.id; save(); scheduleAnalysis()
     }
     func save() {
         guard canSave else { return }

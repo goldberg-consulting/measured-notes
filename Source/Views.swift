@@ -59,7 +59,7 @@ struct LibraryView: View {
                 ForEach([("All notes", "square.stack"), ("Pinned", "pin"), ("To-dos", "checkmark.circle"), ("Meetings", "person.2"), ("Reminders", "bell")], id: \.0) { title, icon in
                     Button { store.filter = title; if !store.filtered.contains(where: { $0.id == store.selected }) { store.selected = store.filtered.first?.id } } label: {
                         HStack(spacing: 12) { Image(systemName: icon).frame(width: 18); Text(title); Spacer(); if title == "All notes" { Text("\(store.notes.count)").font(.system(size: 11)) } }
-                            .font(.system(size: 12, weight: store.filter == title ? .semibold : .regular)).padding(.vertical, 11).padding(.horizontal, 10).foregroundStyle(store.filter == title ? accent : muted).background(store.filter == title ? accent.opacity(0.09) : .clear, in: RoundedRectangle(cornerRadius: 0))
+                            .font(.system(size: 12, weight: store.filter == title ? .semibold : .regular)).padding(.vertical, 11).padding(.horizontal, 10).foregroundStyle(store.filter == title ? accent : muted).background(store.filter == title ? accent.opacity(0.09) : .clear, in: RoundedRectangle(cornerRadius: 0)).contentShape(Rectangle())
                     }.buttonStyle(.plain)
                 }
                 CollectionSidebar(store: store, manage: { organizeNoteID = nil; showCollectionSheet = true }, createCollection: { kind in newCollectionKind = kind; organizeNoteID = nil; showCollectionSheet = true })
@@ -84,6 +84,9 @@ struct LibraryView: View {
                         HStack { Text(store.filterTitle).font(.system(size: 19, weight: .medium, design: .serif)); Spacer(); Menu { Button("Note") { store.create() }; Button("Example") { store.create(kind: "Example") }; Button("Checklist") { store.create(kind: "To-do") }; Button("Meeting") { store.create(kind: "Meeting") } } label: { Image(systemName: "square.and.pencil").foregroundStyle(accent) }.menuStyle(.borderlessButton).frame(width: 28) }.padding(20)
                         HStack { Image(systemName: "magnifyingglass"); TextField("Search your thoughts", text: $store.search).textFieldStyle(.plain) }.font(.system(size: 11)).foregroundStyle(muted).padding(10).background(ink.opacity(0.6), in: RoundedRectangle(cornerRadius: 0)).padding(.horizontal, 16).padding(.bottom, 14)
                             .background(GeometryReader { geometry in Color.clear.preference(key: NoteListRegions.self, value: ["search": geometry.frame(in: .named("note-list"))]) })
+                        if store.filter == "All notes" {
+                            NoteBranchList(store: store, organize: { organizeNoteID = $0; showCollectionSheet = true }, delete: { deleteTarget = $0 })
+                        } else {
                         ScrollView {
                             LazyVStack(spacing: 6) {
                                 ForEach(store.filtered) { note in
@@ -94,12 +97,13 @@ struct LibraryView: View {
                                             Text(note.excerpt.isEmpty ? "A thought waiting to happen…" : note.excerpt).font(.system(size: 11)).foregroundStyle(muted).lineSpacing(3).lineLimit(2).frame(maxWidth: .infinity, alignment: .leading)
                                             HStack { ForEach(Array(note.tags.prefix(2)), id: \.self) { Pill(text: "#" + $0) }; Spacer(); if note.openTasks > 0 { Label("\(note.openTasks)", systemImage: "checkmark.circle").font(.system(size: 10)).foregroundStyle(muted) } }
                                         }.padding(15).frame(maxWidth: .infinity, alignment: .leading).background(store.selected == note.id ? accent.opacity(0.08) : .clear, in: RoundedRectangle(cornerRadius: 0)).overlay(RoundedRectangle(cornerRadius: 0).stroke(store.selected == note.id ? accent : .clear))
-                                    }.buttonStyle(.plain).contextMenu { creationMenu; Divider(); Button("Assign collections…") { organizeNoteID = note.id; showCollectionSheet = true }; Button(note.pinned ? "Unpin" : "Pin") { store.update(note.id) { $0.pinned.toggle() } }; Button("Delete note", role: .destructive) { deleteTarget = note.id } }
+                                    }.buttonStyle(.plain).contextMenu { Button("Create related note") { store.createRelated(to: note.id) }; creationMenu; Divider(); Button("Assign collections…") { organizeNoteID = note.id; showCollectionSheet = true }; Button(note.pinned ? "Unpin" : "Pin") { store.update(note.id) { $0.pinned.toggle() } }; Button("Delete note", role: .destructive) { deleteTarget = note.id } }
                                         .background(GeometryReader { geometry in Color.clear.preference(key: NoteListRegions.self, value: ["row:" + note.id.uuidString: geometry.frame(in: .named("note-list"))]) })
                                 }
                                 if store.filtered.isEmpty { Text("No notes here yet.").foregroundStyle(muted).padding(25) }
                             }.padding(.horizontal, 10)
                         }.background(GeometryReader { geometry in Color.clear.preference(key: NoteListRegions.self, value: ["viewport": geometry.frame(in: .named("note-list"))]) })
+                        }
                         Text("\(store.filtered.count) thoughts, safely kept").font(.system(size: 10)).foregroundStyle(muted).padding(18)
                     }.frame(width: 285).background(panel)
                         .coordinateSpace(name: "note-list")
@@ -211,6 +215,7 @@ struct NoteEditor: View {
             HStack(spacing: 15) {
                 Menu { ForEach(["Note", "To-do", "Meeting", "Example"], id: \.self) { kind in Button(kind) { store.update(id) { $0.kind = kind } } } } label: { Label(note.kind, systemImage: note.kind == "Meeting" ? "person.2" : "doc.text").font(.system(size: 11)).foregroundStyle(muted) }.menuStyle(.borderlessButton).frame(width: 100)
                 Spacer()
+                Menu { Button("Related note") { store.createRelated(to: id) }; Button("Related meeting") { store.createRelated(to: id, kind: "Meeting") } } label: { Image(systemName: "arrow.triangle.branch") }.menuStyle(.borderlessButton).frame(width: 22).help("Create a separate note linked to this one")
                 Button { showCollections = true } label: { Label("Organize", systemImage: "folder") }.help("Assign folders, products, and flows")
                 Button { store.update(id) { $0.pinned.toggle() } } label: { Image(systemName: note.pinned ? "pin.fill" : "pin") }.help("Pin note")
                 Button { showReminder = true } label: { Image(systemName: "bell.badge") }.help("Set a reminder")
@@ -219,6 +224,7 @@ struct NoteEditor: View {
             if note.kind == "Meeting" { MeetingControls(store: store, noteID: id).padding(.bottom, 12) }
             TextField("Untitled spark", text: textBinding(\.title), axis: .vertical).font(.system(size: compact ? 25 : 29, weight: .medium, design: .serif)).textFieldStyle(.plain).padding(.bottom, 10)
             HStack { Text(note.updated, format: .dateTime.month(.wide).day().hour().minute()); Text("·"); Text("\(note.body.split { $0.isWhitespace || $0.isNewline }.count) words") }.font(.system(size: 10)).foregroundStyle(muted).padding(.bottom, 10)
+            NoteRelations(store: store, note: note)
             if !store.collections(for: note).isEmpty {
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 12) {

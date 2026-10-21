@@ -53,10 +53,10 @@ enum NotesExport {
             try check(sqlite3_step(statement))
         }
         try execute("""
-        PRAGMA user_version = 4;
+        PRAGMA user_version = 5;
         BEGIN TRANSACTION;
         CREATE TABLE metadata (key TEXT PRIMARY KEY, value TEXT NOT NULL);
-        CREATE TABLE notes (id TEXT PRIMARY KEY, position INTEGER NOT NULL, title TEXT NOT NULL, body TEXT NOT NULL, kind TEXT NOT NULL, updated_at TEXT NOT NULL, pinned INTEGER NOT NULL, summary TEXT NOT NULL, reminder_at TEXT);
+        CREATE TABLE notes (id TEXT PRIMARY KEY, position INTEGER NOT NULL, title TEXT NOT NULL, body TEXT NOT NULL, kind TEXT NOT NULL, updated_at TEXT NOT NULL, pinned INTEGER NOT NULL, summary TEXT NOT NULL, reminder_at TEXT, created_at TEXT NOT NULL, origin_id TEXT);
         CREATE TABLE actions (id TEXT PRIMARY KEY, note_id TEXT NOT NULL REFERENCES notes(id), position INTEGER NOT NULL, text TEXT NOT NULL, completed INTEGER NOT NULL, parent_id TEXT);
         CREATE TABLE collections (id TEXT PRIMARY KEY, position INTEGER NOT NULL, name TEXT NOT NULL, kind TEXT NOT NULL);
         CREATE TABLE note_collections (note_id TEXT NOT NULL REFERENCES notes(id), collection_id TEXT NOT NULL, position INTEGER NOT NULL);
@@ -71,12 +71,12 @@ enum NotesExport {
         let dates = ISO8601DateFormatter()
         dates.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
         try insert("INSERT INTO metadata VALUES (?, ?)", ["exported_at", dates.string(from: Date())])
-        try insert("INSERT INTO metadata VALUES (?, ?)", ["format", "one.measured.notes.sqlite.v4"])
+        try insert("INSERT INTO metadata VALUES (?, ?)", ["format", "one.measured.notes.sqlite.v5"])
         let encoded = try JSONEncoder().encode(archive)
         try insert("INSERT INTO archive VALUES (1, ?)", [String(decoding: encoded, as: UTF8.self)])
         for (position, note) in archive.notes.enumerated() {
             let id = note.id.uuidString
-            try insert("INSERT INTO notes VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)", [id, String(position), note.title, note.body, note.kind, dates.string(from: note.updated), note.pinned ? "1" : "0", note.summary, note.reminder.map { dates.string(from: $0) }])
+            try insert("INSERT INTO notes VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", [id, String(position), note.title, note.body, note.kind, dates.string(from: note.updated), note.pinned ? "1" : "0", note.summary, note.reminder.map { dates.string(from: $0) }, dates.string(from: note.timelineDate), note.originID?.uuidString])
             for (position, action) in note.tasks.enumerated() {
                 try insert("INSERT INTO actions VALUES (?, ?, ?, ?, ?, ?)", [action.id.uuidString, id, String(position), action.text, action.completed ? "1" : "0", action.parentID?.uuidString])
             }
