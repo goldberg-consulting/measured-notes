@@ -7,6 +7,14 @@ trap 'rm -rf "$STAGING"' EXIT
 APP="$STAGING/Measured Notes.app"
 mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources" dist
 xcrun swiftc -module-cache-path "$STAGING/module-cache" Source/*.swift -o "$APP/Contents/MacOS/MeasuredNotes" -target arm64-apple-macos26.0 -O -framework SwiftUI -framework AppKit -framework Carbon -framework FoundationModels -framework UserNotifications -lsqlite3 -framework ScreenCaptureKit -framework Speech -framework AVFoundation
+ICONSET="$STAGING/AppIcon.iconset"
+mkdir -p "$ICONSET"
+for SIZE in 16 32 128 256 512; do
+  sips -z "$SIZE" "$SIZE" Resources/AppIcon.png --out "$ICONSET/icon_${SIZE}x${SIZE}.png" >/dev/null
+  DOUBLE=$((SIZE * 2))
+  sips -z "$DOUBLE" "$DOUBLE" Resources/AppIcon.png --out "$ICONSET/icon_${SIZE}x${SIZE}@2x.png" >/dev/null
+done
+iconutil -c icns "$ICONSET" -o "$APP/Contents/Resources/AppIcon.icns"
 cat > "$APP/Contents/Info.plist" <<PLIST
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
@@ -15,6 +23,7 @@ cat > "$APP/Contents/Info.plist" <<PLIST
 <key>CFBundleIdentifier</key><string>one.measured.notes</string>
 <key>CFBundleName</key><string>Measured Notes</string>
 <key>CFBundleDisplayName</key><string>measured.one Notes</string>
+<key>CFBundleIconFile</key><string>AppIcon</string>
 <key>CFBundlePackageType</key><string>APPL</string>
 <key>CFBundleShortVersionString</key><string>$VERSION</string>
 <key>CFBundleVersion</key><string>$VERSION</string>

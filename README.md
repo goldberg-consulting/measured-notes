@@ -104,3 +104,5 @@ Attachments share the right column with Actions; they no longer shorten the Mark
 Images and document bytes are embedded in `notes.json`, not linked to the original files. The Markdown references identify attachment placement within a note. SQLite exports store the bytes in the `images` and `documents` tables.
 
 The `@` action menu supports Up/Down (or Tab/Shift-Tab) to select, Return to activate, and Escape to dismiss. The selected action is highlighted.
+
+The app icon uses the measured.one “m.” artwork from [measured.one](https://measured.one/favicon.png). The source image is kept in `Resources/AppIcon.png`; the build generates the macOS icon sizes.
