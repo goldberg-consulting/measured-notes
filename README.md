@@ -10,6 +10,10 @@ A small macOS notes app from measured.one. Press **⌘⇧T** from any app to cap
 - Per-note summaries and tags using Apple’s on-device models.
 - Reminders and email or Messages drafts.
 
+## iPhone companion
+
+An adaptive iOS companion is in development. See [iOS build instructions and current limitations](iOS/README.md). It is not yet available through TestFlight, and Mac/iPhone sync is not implemented.
+
 ## Install
 
 Requires an Apple silicon Mac running macOS 26 or later.

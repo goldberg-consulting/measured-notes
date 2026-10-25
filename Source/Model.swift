@@ -130,6 +130,12 @@ struct Note: Codable, Identifiable, Equatable {
     var excerpt: String { body.components(separatedBy: .newlines).filter { !$0.isEmpty }.prefix(2).joined(separator: " · ") }
 }
 
+#if os(iOS)
+private let noteStorageLocation = "this device"
+#else
+private let noteStorageLocation = "this Mac"
+#endif
+
 @MainActor final class NoteStore: ObservableObject {
     @Published var notes: [Note] = []
     @Published var collections: [NoteCollection] = []
@@ -137,7 +143,7 @@ struct Note: Codable, Identifiable, Equatable {
     @Published var shortcutStatus = "⌘⇧T · checking shortcut"
     @Published var search = ""
     @Published var filter = "All notes"
-    @Published var status = "Saved on this Mac"
+    @Published var status = "Saved on \(noteStorageLocation)"
     @Published var summaryStatus: [UUID: String] = [:]
     private var analysisTask: Task<Void, Never>?
     private let file: URL
@@ -170,7 +176,11 @@ struct Note: Codable, Identifiable, Equatable {
             }
             catch { canSave = false; status = "Could not read saved notes. Original file preserved." }
         } else {
+            #if os(iOS)
+            notes = [Note(title: "Your notes, wherever you are", body: "Capture a thought with the compose button.\n\nOpen the Index for folders, products, and flows. Use the checklist button for actions and attachments.\n\nLong-press a note to create a related note.", actions: [])]
+            #else
             notes = [Note(title: "A place for your lightning", body: "Good ideas don't wait for an open tab.\n\nPress ⌘⇧T from any app to capture a thought.\nType @ to share a note or add a person.\n\n- [ ] Capture your first spark\n- [ ] Turn a thought into an action\n\n#start-here", pinned: true, tags: ["start-here"], summary: "Your thoughts, tasks, and meetings. One quiet place to keep them.")]
+            #endif
         }
         if notes.contains(where: { $0.actions == nil }), FileManager.default.fileExists(atPath: self.file.path) {
             let backup = self.file.deletingLastPathComponent().appendingPathComponent("notes-before-separate-actions.json")
@@ -235,7 +245,7 @@ struct Note: Codable, Identifiable, Equatable {
         do {
             try FileManager.default.createDirectory(at: file.deletingLastPathComponent(), withIntermediateDirectories: true)
             try JSONEncoder().encode(NotesArchive(notes: notes, collections: collections)).write(to: file, options: .atomic)
-            status = "Saved on this Mac"
+            status = "Saved on \(noteStorageLocation)"
         } catch { status = "Save failed: \(error.localizedDescription)" }
     }
     @discardableResult func createCollection(name: String, kind: String) -> UUID? {
