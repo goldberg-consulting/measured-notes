@@ -21,7 +21,7 @@ The status “changes queued with iCloud Drive” does not confirm delivery to a
 ## Known limitations
 
 - Real-device iCloud transfer and account switching still need validation.
-- Mobile meeting recording/transcription, archive import, lock-screen capture, and a share extension are not included.
+- Mobile meetings record the microphone and transcribe saved audio on-device. Other apps’ calls, screen video, and automatic speaker diarization are not included. Archive import, lock-screen quick capture, and a share extension remain unavailable.
 - Related notes show their source, but the mobile timeline does not yet draw the full Mac branch trace.
 - Sync history and older attachment files are retained to support offline devices. Deleting a note does not immediately erase every retained attachment copy.
 

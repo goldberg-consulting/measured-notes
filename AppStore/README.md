@@ -28,7 +28,7 @@ Each user's Apple Account has its own contents within that container. Sharing an
 - Review privacy answers and required-reason API declarations against the final binary and any dependencies added before release.
 - Choose pricing, territories, support URL/contact, age-rating answers, and final product name.
 - Capture actual device screenshots of the release build. Do not submit development screenshots as evidence of Duo support.
-- Finish or explicitly omit unported functionality from the listing: mobile recording/transcription, archive import, lock-screen/share-extension capture, and full branch-trace drawing.
+- Finish or explicitly omit unported functionality from the listing: other-app call/video capture, speaker diarization, archive import, lock-screen/share-extension capture, and full branch-trace drawing.
 - Submit through App Store Connect after the release candidate passes device tests.
 
 Builds 0.1.0 (1) and (2) uploaded successfully. Build 2 includes in-app privacy and support links. No build has been submitted for public App Review and no public listing has been published.

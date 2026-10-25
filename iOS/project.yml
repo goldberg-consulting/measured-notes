@@ -21,14 +21,20 @@ targets:
         excludes: ['project.yml', '*.xcodeproj', 'README.md', 'ExportOptions.plist']
       - ../Source/Model.swift
       - ../Source/Tables.swift
+      - ../Source/MarkdownHeadings.swift
       - ../Source/Export.swift
       - ../Source/SyncReplica.swift
       - ../Source/ICloudSync.swift
+      - ../Source/MeetingTranscription.swift
     info:
       path: Info.plist
       properties:
         CFBundleShortVersionString: $(MARKETING_VERSION)
         CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        NSMicrophoneUsageDescription: Record meeting audio when you choose Start recording.
+        NSSpeechRecognitionUsageDescription: Transcribe your meeting recordings on this device.
+        UIBackgroundModes: [audio]
+        ITSAppUsesNonExemptEncryption: false
         CFBundleURLTypes:
           - CFBundleURLName: one.measured.notes.mobile
             CFBundleURLSchemes: [measurednotes]

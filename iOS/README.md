@@ -25,7 +25,7 @@ References: [Design for iPhone Duo](https://developer.apple.com/videos/play/tech
 
 ## Not yet included
 
-This is a development build, not a TestFlight release or complete Mac feature parity. Archive import is not implemented. iCloud signing has been provisioned, and two-replica filesystem tests pass; real iCloud transfer and account switching still need device tests. The mobile timeline shows source links, but does not yet draw the Mac's full branch trace. Mac window recording and transcription have not been ported; the mobile Meeting option currently creates a meeting note template. Background/lock-screen capture, share extensions, and interactive fold-transition tests remain outstanding.
+This is a TestFlight beta, without complete Mac feature parity. Archive import is not implemented. iCloud signing has been provisioned, and two-replica filesystem tests pass; real iCloud transfer and account switching still need device tests. The mobile timeline shows source links, but does not yet draw the Mac's full branch trace. iPhone supports microphone meeting recording, playback, sharing, and Apple on-device transcription with retries. Recordings and transcripts sync through the shared library. Other apps’ call audio and screen video are not captured. Automatic speaker diarization is not included. Physical-device recording, interruptions, and locked-screen capture still need acceptance tests. Lock-screen quick capture, share extensions, and interactive fold-transition tests remain outstanding.
 
 ## Build
 
@@ -46,3 +46,7 @@ Open the generated project in Xcode to run on a signed device. Device provisioni
 Run `BUILD_NUMBER=1 bash scripts/build-ios.sh` from the repository root. Use a new build number for each uploaded build. The script generates the Xcode project, archives with automatic signing, exports into `dist/iOS/build-<number>/export/`, and checks the package contents. It does not upload anything. Requires Xcode with the development team signed in and XcodeGen installed.
 
 TestFlight copy and remaining account setup are in `AppStore/TestFlight.md`. Real-device acceptance checks are in `AppStore/DeviceTests.md`.
+
+## Meetings
+
+Open a note’s menu → Record meeting, choose a language, and start recording. Meeting notes also show a direct Meeting recordings button. Stop to save audio and begin transcription. Audio remains saved if transcription fails or is cancelled; Transcribe again retries after a model download or interruption. The Index shows recording controls while you browse other notes.

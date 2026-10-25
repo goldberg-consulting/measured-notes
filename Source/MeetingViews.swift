@@ -36,7 +36,7 @@ struct MeetingControls: View {
                             Text(displayStatus(recording)).font(.caption).foregroundStyle(.secondary)
                             HStack {
                                 Button("Play") { if let url = recordingURL(recording) { NSWorkspace.shared.open(url) } }
-                                Button("Save video…") { saveVideo(recording) }
+                                Button("Save recording…") { saveVideo(recording) }
                                 Button("Transcript") { transcriptID = recording.id; showTranscript = true }.disabled(recording.transcript.isEmpty)
                                 Button("Transcribe") { recorder.retry(recording, store: store, noteID: noteID) }.disabled(recorder.busy || !recording.transcript.isEmpty)
                             }.controlSize(.small)
@@ -101,7 +101,7 @@ struct MeetingControls: View {
     }
     func saveVideo(_ recording: MeetingRecording) {
         guard let source = recordingURL(recording) else { return }
-        let panel = NSSavePanel(); panel.allowedContentTypes = [.mpeg4Movie]; panel.nameFieldStringValue = "Meeting-\(recording.id.uuidString.prefix(8)).mp4"
+        let panel = NSSavePanel(); panel.allowedContentTypes = [source.pathExtension == "m4a" ? .mpeg4Audio : .mpeg4Movie]; panel.nameFieldStringValue = "Meeting-\(recording.id.uuidString.prefix(8)).\(source.pathExtension)"
         guard panel.runModal() == .OK, let destination = panel.url else { return }
         do { try MeetingMedia.copy(source: source, to: destination) }
         catch { NSAlert(error: error).runModal() }

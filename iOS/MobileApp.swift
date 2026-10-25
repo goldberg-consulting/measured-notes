@@ -2,6 +2,7 @@ import SwiftUI
 import UIKit
 
 @main struct MeasuredNotesMobileApp: App {
+    @StateObject private var recorder = MobileMeetingRecorder()
     @StateObject private var store: NoteStore
     @StateObject private var cloudSync: ICloudSync
     init() {
@@ -12,6 +13,7 @@ import UIKit
     var body: some Scene {
         WindowGroup {
             MobileLibrary(store: store)
+                .environmentObject(recorder)
                 .tint(.primary)
                 .preferredColorScheme(.light)
                 .onOpenURL { url in
@@ -22,6 +24,7 @@ import UIKit
 }
 
 struct MobileLibrary: View {
+    @EnvironmentObject var recorder: MobileMeetingRecorder
     @ObservedObject var store: NoteStore
     @AppStorage("iCloudSyncEnabled") private var syncEnabled = true
     @State private var visibility: NavigationSplitViewVisibility = .all
@@ -37,6 +40,13 @@ struct MobileLibrary: View {
     var body: some View {
         NavigationSplitView(columnVisibility: $visibility, preferredCompactColumn: $preferred) {
             List {
+                if recorder.busy {
+                    Section("Meeting in progress") {
+                        Button(recorder.phase) { if let id = recorder.noteID { store.openNote(id); preferred = .detail } }
+                        if recorder.isRecording { Button("Stop recording", role: .destructive) { recorder.stop() } }
+                        if recorder.phase == "Transcribing" { Button("Cancel transcription") { recorder.cancelTranscription() } }
+                    }
+                }
                 Section("measured.one") {
                     ForEach(["All notes", "Pinned", "To-dos", "Meetings", "Reminders"], id: \.self) { filter in
                         Button {

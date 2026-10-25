@@ -5,6 +5,8 @@ import UniformTypeIdentifiers
 struct MobileNoteEditor: View {
     @ObservedObject var store: NoteStore
     let id: UUID
+    @EnvironmentObject var recorder: MobileMeetingRecorder
+    @State private var meetings = false
     @State private var connect = false
     @State private var preview = false
     @State private var inspector = false
@@ -35,6 +37,9 @@ struct MobileNoteEditor: View {
             if !related.isEmpty {
                 Menu("Related notes (\(related.count))") { ForEach(related) { child in Button(child.displayTitle) { store.openNote(child.id) } } }.font(.caption).padding(.horizontal)
             }
+            if note.kind == "Meeting" || !(note.recordings ?? []).isEmpty || recorder.noteID == id {
+                Button { meetings = true } label: { Label(recorder.noteID == id ? recorder.phase : "Meeting recordings", systemImage: recorder.noteID == id ? "record.circle" : "mic") }.padding(.horizontal)
+            }
             if preview { MobilePreview(note: note, edit: { table = $0 }).padding(.horizontal) }
             else { TextEditor(text: text(\.body)).font(.body.monospaced()).padding(.horizontal, 12).accessibilityLabel("Markdown editor") }
         }.padding(.top, 8)
@@ -43,6 +48,7 @@ struct MobileNoteEditor: View {
                 ToolbarItem { Button(preview ? "Edit Markdown" : "Preview", systemImage: preview ? "pencil" : "eye") { preview.toggle() } }
                 ToolbarItem { Button("Actions and attachments", systemImage: "checklist") { inspector.toggle() } }
                 ToolbarItem { Menu {
+                    Button("Record meeting", systemImage: "mic") { meetings = true }
                     Button("Create related note", systemImage: "arrow.triangle.branch") { store.createRelated(to: id) }
                     Button("New table", systemImage: "tablecells") { table = .blank(rows: 3, columns: 3) }
                     ForEach(Array(MarkdownTable.parse(note.body).enumerated()), id: \.element.id) { index, value in Button("Edit table \(index + 1)") { table = value } }
@@ -59,6 +65,7 @@ struct MobileNoteEditor: View {
             .inspector(isPresented: $inspector) {
                 MobileInspector(store: store, id: id).inspectorColumnWidth(min: 220, ideal: 280, max: 360)
             }
+            .sheet(isPresented: $meetings) { MobileMeetings(store: store, id: id) }
             .sheet(item: $table) { value in MobileTableEditor(table: value) { result in store.update(id) { $0.body = result.replacing(in: $0.body) } } }
             .sheet(isPresented: $share) { MobileShare(items: [note.displayTitle + "\n\n" + note.exportMarkdown]) }
             .sheet(isPresented: $organize) {

@@ -78,10 +78,35 @@ struct MobilePreview: View {
                     } else if let document = note.documents?.first(where: { $0.markdown == lines[index].trimmingCharacters(in: .whitespaces) }) {
                         Label(document.name, systemImage: "doc").font(.callout)
                     } else {
-                        Text((try? AttributedString(markdown: lines[index], options: .init(interpretedSyntax: .full))) ?? AttributedString(lines[index])).textSelection(.enabled).frame(maxWidth: .infinity, alignment: .leading)
+                        MobileMarkdownLine(lines: lines, index: index)
                     }
                 }
             }.frame(maxWidth: .infinity, alignment: .leading)
         }
+    }
+}
+
+// SwiftUI Text renders inline Markdown, but block headings need explicit typography.
+struct MobileMarkdownLine: View {
+    let lines: [String]
+    let index: Int
+    private var fenced: Bool { MarkdownHeadings.codeLine(lines, at: index) }
+    private var line: String { lines[index] }
+    private var heading: (Int, String)? { MarkdownHeadings.heading(lines, at: index) }
+    var body: some View {
+        if fenced { Text(line).font(.body.monospaced()).textSelection(.enabled).frame(maxWidth: .infinity, alignment: .leading) }
+        else if index > 0, !lines[index - 1].trimmingCharacters(in: .whitespaces).isEmpty, MarkdownHeadings.underline(line) != nil && MarkdownHeadings.heading(lines, at: index - 1) != nil { EmptyView() }
+        else if let (level, title) = heading {
+            Text(inline(title)).font(font(level)).fontWeight(.semibold).accessibilityAddTraits(.isHeader)
+                .padding(.top, level <= 2 ? 10 : 4).frame(maxWidth: .infinity, alignment: .leading).textSelection(.enabled)
+        } else {
+            Text(inline(line)).textSelection(.enabled).frame(maxWidth: .infinity, alignment: .leading)
+        }
+    }
+    private func inline(_ value: String) -> AttributedString {
+        (try? AttributedString(markdown: value, options: .init(interpretedSyntax: .inlineOnlyPreservingWhitespace))) ?? AttributedString(value)
+    }
+    private func font(_ level: Int) -> Font {
+        switch level { case 1: return .largeTitle; case 2: return .title; case 3: return .title2; case 4: return .title3; case 5: return .headline; default: return .subheadline }
     }
 }
