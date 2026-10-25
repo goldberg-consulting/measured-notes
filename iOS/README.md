@@ -40,3 +40,9 @@ xcodebuild -project iOS/MeasuredNotesMobile.xcodeproj \
 ```
 
 Open the generated project in Xcode to run on a signed device. Device provisioning with the shared iCloud container is configured. TestFlight upload and real-device sync verification remain outstanding. The checked-in project specification is authoritative; the generated Xcode project is ignored.
+
+## Reproducible App Store export
+
+Run `BUILD_NUMBER=1 bash scripts/build-ios.sh` from the repository root. Use a new build number for each uploaded build. The script generates the Xcode project, archives with automatic signing, exports into `dist/iOS/build-<number>/export/`, and checks the package contents. It does not upload anything. Requires Xcode with the development team signed in and XcodeGen installed.
+
+TestFlight copy and remaining account setup are in `AppStore/TestFlight.md`. Real-device acceptance checks are in `AppStore/DeviceTests.md`.

@@ -4,7 +4,7 @@ Measured Notes stores the notes, checklists, people labels, images, documents, a
 
 When iCloud sync is enabled, the app uses Apple's iCloud Drive service to synchronize this content between your devices signed in to the same Apple Account. Each person's iCloud library is separate. Goldberg Consulting does not operate a server that receives your note library. Adding a person to a note is a label; it does not share the note or invite that person.
 
-You can turn off iCloud sync in the app. Turning sync off stops further transfers by the app; it does not erase copies already stored in iCloud or on your other devices. If you change Apple Accounts, the app pauses synchronization to avoid copying the previous account's library to the new account.
+You can turn off iCloud sync in the app. Turning sync off stops new synchronization cycles; transfers already queued with iCloud Drive may finish. It does not erase copies already stored in iCloud or on your other devices. If you change Apple Accounts, the app pauses synchronization to avoid copying the previous account's library to the new account.
 
 Deleting a note removes it from the visible library and records the deletion for other devices. Conflict versions, synchronization history, and previously uploaded attachment files can remain in local storage and iCloud to support offline devices. The app does not currently offer immediate permanent erasure of individual attachment blobs. Apple's iCloud storage controls can be used to remove the app's cloud data; local copies on devices must also be removed before re-enabling sync to avoid uploading them again.
 
