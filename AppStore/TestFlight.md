@@ -33,9 +33,9 @@ Use Index → iCloud sync to disable app synchronization. Summaries require a su
 
 ## Still needed in App Store Connect
 
-- Select the intended developer organization and create the app record for `one.measured.notes.mobile`.
+- App record created: `6826934510`, bundle `one.measured.notes.mobile`, under the user-confirmed Eli Goldberg team.
 - Supply the feedback email and beta review contact through App Store Connect. Do not commit private review contact information to this public repository.
 - Upload the signed package, wait for processing, and resolve any validation or export-compliance questions.
 - Select internal testers. External testing may require Beta App Review.
 
-No invitations have been sent and no build has been uploaded.
+No invitations have been sent. Check App Store Connect for the current build processing status.

@@ -4,7 +4,11 @@ Target: iPhone/iPad companion, with adaptive layouts for iPhone Duo. The Mac app
 
 Bundle ID: `one.measured.notes.mobile`
 
-Developer team: `97UY84BV45`
+Developer team: `97UY84BV45` (Eli Goldberg, confirmed for this app)
+
+App Store Connect app ID: `6826934510`
+
+[App record](https://appstoreconnect.apple.com/apps/6826934510/distribution)
 
 iCloud container: `iCloud.one.measured.notes`
 
@@ -12,7 +16,7 @@ Each user's Apple Account has its own contents within that container. Sharing an
 
 ## Before TestFlight
 
-- A signed archive and App Store distribution export have been produced locally. Create/select its record in App Store Connect and upload the tested candidate.
+- The app record and signed distribution export are ready. Verify upload processing and TestFlight availability in App Store Connect.
 - Test on two real devices signed in to the same iCloud account: new notes, offline edits, concurrent edits, deletions, attachments, recordings transferred from Mac, and account sign-out/switching.
 - Check that iCloud Drive reports completed transfers; the app currently reports that changes are queued, not delivered to every device.
 - Test folding/resizing on Duo. Simulator phone/tablet layouts are not sufficient evidence of fold behavior.
