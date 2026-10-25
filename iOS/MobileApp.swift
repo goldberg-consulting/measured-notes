@@ -64,6 +64,10 @@ struct MobileLibrary: View {
                     Toggle("iCloud sync", isOn: $syncEnabled)
                     Text(store.syncStatus).font(.caption).foregroundStyle(.secondary)
                 }
+                Section("Help") {
+                    Link("Privacy policy", destination: URL(string: "https://github.com/goldberg-consulting/measured-notes/blob/269b6c90cbb920decc84056755c0541b7d9c03c5/AppStore/Privacy.md")!)
+                    Link("Contact support", destination: URL(string: "mailto:cadence@goldbergconsulting.co")!)
+                }
             }.navigationTitle("Index")
                 .navigationSplitViewColumnWidth(min: 160, ideal: 190, max: 240)
                 .toolbar { ToolbarItem { Button("Quick capture", systemImage: "square.and.pencil") { create() } } }
