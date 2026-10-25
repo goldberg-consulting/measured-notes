@@ -34,8 +34,8 @@ Use Index → iCloud sync to disable app synchronization. Summaries require a su
 ## Still needed in App Store Connect
 
 - App record created: `6826934510`, bundle `one.measured.notes.mobile`, under the user-confirmed Eli Goldberg team.
-- Supply the feedback email and beta review contact through App Store Connect. Do not commit private review contact information to this public repository.
+- Feedback email and privacy policy URL are saved in App Store Connect. Beta review contact details are still needed for external testing; do not commit private contact information here.
 - Upload the signed package, wait for processing, and resolve any validation or export-compliance questions.
 - Select internal testers. External testing may require Beta App Review.
 
-Version 0.1.0 (build 1) uploaded successfully on October 25, 2026. Apple reported that the package is processing. TestFlight availability is not yet confirmed. No invitations have been sent.
+Versions 0.1.0 (builds 1 and 2) uploaded successfully on October 25, 2026. Build 2 includes privacy and support links. An internal group with manual build selection and the user-requested tester has been created. Confirm build availability and invitation status in App Store Connect.

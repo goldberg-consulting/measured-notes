@@ -24,11 +24,11 @@ Each user's Apple Account has its own contents within that container. Sharing an
 
 ## Before public release
 
-- Publish the privacy policy at a stable public URL and link it in the app and App Store metadata. `Privacy.md` is a draft reflecting the current implementation.
+- Privacy policy is published at an immutable GitHub URL, linked in the app and TestFlight metadata. Confirm the same URL is entered in public App Store metadata before submission.
 - Review privacy answers and required-reason API declarations against the final binary and any dependencies added before release.
 - Choose pricing, territories, support URL/contact, age-rating answers, and final product name.
 - Capture actual device screenshots of the release build. Do not submit development screenshots as evidence of Duo support.
 - Finish or explicitly omit unported functionality from the listing: mobile recording/transcription, archive import, lock-screen/share-extension capture, and full branch-trace drawing.
 - Submit through App Store Connect after the release candidate passes device tests.
 
-No build has been submitted for Apple review, and no public App Store listing has been published.
+Builds 0.1.0 (1) and (2) uploaded successfully. Build 2 includes in-app privacy and support links. No build has been submitted for public App Review and no public listing has been published.
