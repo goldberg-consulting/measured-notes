@@ -39,3 +39,5 @@ Use Index → iCloud sync to disable app synchronization. Summaries require a su
 - Select internal testers. External testing may require Beta App Review.
 
 Versions 0.1.0 (builds 1 and 2) uploaded successfully on October 25, 2026. Build 2 includes privacy and support links. Build 2 cleared processing and its encryption declaration, and is assigned to the internal group with manual build selection. App Store Connect confirmed the requested tester as Invited on October 25, 2026. Real-device installation and sync acceptance checks remain outstanding.
+
+Build 0.1.0 (3) completed processing and was assigned to the existing internal testing group on October 25, 2026. It adds heading typography and microphone meeting recording with on-device transcription. Shared regression and heading parser checks pass; physical-device recording, interruptions, and transcript accuracy still need testing. Beta description was updated; Apple's separate review-notes update was rejected because review contact fields are incomplete. Those fields remain required before external review.
