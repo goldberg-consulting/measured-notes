@@ -10,6 +10,10 @@ settings:
     TARGETED_DEVICE_FAMILY: '1,2'
 targets:
   MeasuredNotesMobile:
+    attributes:
+      SystemCapabilities:
+        com.apple.iCloud:
+          enabled: 1
     type: application
     platform: iOS
     sources:
@@ -18,6 +22,8 @@ targets:
       - ../Source/Model.swift
       - ../Source/Tables.swift
       - ../Source/Export.swift
+      - ../Source/SyncReplica.swift
+      - ../Source/ICloudSync.swift
     info:
       path: Info.plist
       properties:
@@ -28,6 +34,8 @@ targets:
             CFBundleURLSchemes: [measurednotes]
     settings:
       base:
+        CODE_SIGN_STYLE: Automatic
+        CODE_SIGN_ENTITLEMENTS: iCloud.entitlements
         PRODUCT_BUNDLE_IDENTIFIER: one.measured.notes.mobile
         PRODUCT_NAME: Measured Notes
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon

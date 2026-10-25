@@ -4,3 +4,6 @@ dist/
 START-HERE.txt
 
 iOS/*.xcodeproj/
+macOS/*.xcodeproj/
+*.xcarchive/
+*.ipa

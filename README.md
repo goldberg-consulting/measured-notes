@@ -12,7 +12,7 @@ A small macOS notes app from measured.one. Press **⌘⇧T** from any app to cap
 
 ## iPhone companion
 
-An adaptive iOS companion is in development. See [iOS build instructions and current limitations](iOS/README.md). It is not yet available through TestFlight, and Mac/iPhone sync is not implemented.
+An adaptive iOS companion is in development. See [iOS build instructions and current limitations](iOS/README.md). It is not yet available through TestFlight, and iCloud sync is in device testing.
 
 ## Install
 
@@ -110,3 +110,13 @@ Images and document bytes are embedded in `notes.json`, not linked to the origin
 The `@` action menu supports Up/Down (or Tab/Shift-Tab) to select, Return to activate, and Escape to dismiss. The selected action is highlighted.
 
 The app icon uses the measured.one “m.” artwork from [measured.one](https://measured.one/favicon.png). The source image is kept in `Resources/AppIcon.png`; the build generates the macOS icon sizes.
+
+## iCloud development
+
+The Mac and iPhone targets use `iCloud.one.measured.notes`, with a separate library for each person's Apple Account. The sync implementation keeps local copies, merges device snapshots, and preserves conflicting edits as separate notes. Attachments and completed recording files are stored as separate content-addressed files. iCloud Drive controls transfer timing; a queued change is not a delivery confirmation.
+
+Sync can be switched off in the index. Signing out pauses sync. Changing Apple Accounts pauses it until the original account returns, to prevent cross-account uploads. Sync deletion markers and old attachment blobs are retained for offline replicas; see the [privacy draft](AppStore/Privacy.md).
+
+For a Homebrew release with iCloud enabled, provide `ICLOUD_PROFILE` pointing to the exported Developer ID provisioning profile as well as the usual signing identity and notary profile. The build verifies the app identifier, iCloud capability, and profile expiry before embedding it. A local build without a matching profile remains usable offline.
+
+`macOS/project.yml` provides an Xcode archive/provisioning target. Generate it with `xcodegen generate --spec macOS/project.yml`. App Store preparation is tracked in [AppStore/README.md](AppStore/README.md).

@@ -143,6 +143,7 @@ private let noteStorageLocation = "this Mac"
     @Published var shortcutStatus = "⌘⇧T · checking shortcut"
     @Published var search = ""
     @Published var filter = "All notes"
+    @Published var syncStatus = "iCloud not connected"
     @Published var status = "Saved on \(noteStorageLocation)"
     @Published var summaryStatus: [UUID: String] = [:]
     private var analysisTask: Task<Void, Never>?
@@ -247,6 +248,19 @@ private let noteStorageLocation = "this Mac"
             try JSONEncoder().encode(NotesArchive(notes: notes, collections: collections)).write(to: file, options: .atomic)
             status = "Saved on \(noteStorageLocation)"
         } catch { status = "Save failed: \(error.localizedDescription)" }
+    }
+    func applySyncedArchive(_ archive: NotesArchive) throws {
+        guard canSave, recordingNoteID == nil else { throw CocoaError(.fileWriteNoPermission) }
+        guard notes != archive.notes || collections != archive.collections else { return }
+        guard Set(archive.notes.map(\.id)).count == archive.notes.count,
+              Set(archive.collections.map(\.id)).count == archive.collections.count else { throw CocoaError(.fileReadCorruptFile) }
+        // Commit to disk before replacing the editor's live data.
+        try JSONEncoder().encode(archive).write(to: file, options: .atomic)
+        notes = archive.notes; collections = archive.collections
+        if let selected, !notes.contains(where: { $0.id == selected }) { self.selected = filtered.first?.id }
+        if filter.hasPrefix("collection:"), activeCollection == nil { filter = "All notes" }
+        if selected == nil { selected = filtered.first?.id }
+        scheduleAnalysis()
     }
     @discardableResult func createCollection(name: String, kind: String) -> UUID? {
         let cleaned = name.trimmingCharacters(in: .whitespacesAndNewlines)

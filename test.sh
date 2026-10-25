@@ -18,3 +18,6 @@ xcrun swiftc -module-cache-path "$STAGING/module-cache" -target arm64-apple-maco
 "$STAGING/DocumentChecks"
 xcrun swiftc -module-cache-path "$STAGING/module-cache" -target arm64-apple-macos26.0 Source/ConnectMenu.swift Tests/ConnectMenuChecks.swift -o "$STAGING/ConnectMenuChecks" -framework AppKit -framework SwiftUI
 "$STAGING/ConnectMenuChecks"
+
+xcrun swiftc -module-cache-path "$STAGING/module-cache" -target arm64-apple-macos26.0 Source/Model.swift Source/SyncReplica.swift Source/ICloudSync.swift Tests/SyncChecks.swift -o "$STAGING/SyncChecks" -framework FoundationModels -framework UserNotifications
+"$STAGING/SyncChecks"

@@ -2,7 +2,13 @@ import SwiftUI
 import UIKit
 
 @main struct MeasuredNotesMobileApp: App {
-    @StateObject private var store = NoteStore()
+    @StateObject private var store: NoteStore
+    @StateObject private var cloudSync: ICloudSync
+    init() {
+        let store = NoteStore()
+        _store = StateObject(wrappedValue: store)
+        _cloudSync = StateObject(wrappedValue: ICloudSync(store: store))
+    }
     var body: some Scene {
         WindowGroup {
             MobileLibrary(store: store)
@@ -17,6 +23,7 @@ import UIKit
 
 struct MobileLibrary: View {
     @ObservedObject var store: NoteStore
+    @AppStorage("iCloudSyncEnabled") private var syncEnabled = true
     @State private var visibility: NavigationSplitViewVisibility = .all
     @State private var preferred: NavigationSplitViewColumn = .content
     @State private var collectionName = ""
@@ -54,6 +61,8 @@ struct MobileLibrary: View {
                     Button("Export SQLite", systemImage: "externaldrive") { export(sqlite: true) }
                     Button("Export JSON", systemImage: "square.and.arrow.up") { export(sqlite: false) }
                     Text(store.status).font(.caption).foregroundStyle(.secondary)
+                    Toggle("iCloud sync", isOn: $syncEnabled)
+                    Text(store.syncStatus).font(.caption).foregroundStyle(.secondary)
                 }
             }.navigationTitle("Index")
                 .navigationSplitViewColumnWidth(min: 160, ideal: 190, max: 240)

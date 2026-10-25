@@ -12,6 +12,7 @@ References: [Design for iPhone Duo](https://developer.apple.com/videos/play/tech
 
 ## Included
 
+- Automatic iCloud Drive sync with local copies, conflict preservation, and account-change protection. Real-device cross-device verification is still required.
 - Shared note storage, source relationships, creation-order timeline, collections, and tags.
 - Markdown editing and preview; editable tables with row, column, and cell colors.
 - Independent actions and subitems.
@@ -24,7 +25,7 @@ References: [Design for iPhone Duo](https://developer.apple.com/videos/play/tech
 
 ## Not yet included
 
-This is a development build, not a TestFlight release or complete Mac feature parity. Automatic Mac/iPhone sync and archive import are not implemented. Notes are currently local to each installation. The mobile timeline shows source links, but does not yet draw the Mac's full branch trace. Mac window recording and transcription have not been ported; the mobile Meeting option currently creates a meeting note template. Background/lock-screen capture, share extensions, and interactive fold-transition tests remain outstanding.
+This is a development build, not a TestFlight release or complete Mac feature parity. Archive import is not implemented. iCloud signing has been provisioned, and two-replica filesystem tests pass; real iCloud transfer and account switching still need device tests. The mobile timeline shows source links, but does not yet draw the Mac's full branch trace. Mac window recording and transcription have not been ported; the mobile Meeting option currently creates a meeting note template. Background/lock-screen capture, share extensions, and interactive fold-transition tests remain outstanding.
 
 ## Build
 
@@ -38,4 +39,4 @@ xcodebuild -project iOS/MeasuredNotesMobile.xcodeproj \
   -derivedDataPath /tmp/measured-mobile-build CODE_SIGNING_ALLOWED=NO build
 ```
 
-Open the generated project in Xcode to run on a signed device. Device provisioning and TestFlight distribution have not been configured. The checked-in project specification is authoritative; the generated Xcode project is ignored.
+Open the generated project in Xcode to run on a signed device. Device provisioning with the shared iCloud container is configured. TestFlight upload and real-device sync verification remain outstanding. The checked-in project specification is authoritative; the generated Xcode project is ignored.
