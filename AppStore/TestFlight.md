@@ -38,4 +38,4 @@ Use Index → iCloud sync to disable app synchronization. Summaries require a su
 - Upload the signed package, wait for processing, and resolve any validation or export-compliance questions.
 - Select internal testers. External testing may require Beta App Review.
 
-No invitations have been sent. Check App Store Connect for the current build processing status.
+Version 0.1.0 (build 1) uploaded successfully on October 25, 2026. Apple reported that the package is processing. TestFlight availability is not yet confirmed. No invitations have been sent.
