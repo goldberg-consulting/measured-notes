@@ -1,4 +1,6 @@
-# Measured Notes privacy policy — draft
+# Measured Notes privacy policy
+
+Effective October 25, 2026.
 
 Measured Notes stores the notes, checklists, people labels, images, documents, and meeting content you add to the app on your device.
 
@@ -14,4 +16,6 @@ When you use the system share sheet, the content you select is passed to the des
 
 The app contains no advertising or third-party analytics SDK. Apple may process diagnostics and iCloud information under its own policies and your device settings. If you choose to send us a support request or diagnostic material, we receive the information you include.
 
-Before publication: add a verified support/privacy contact and effective date, publish this policy at a stable URL, and confirm it matches the shipped build.
+For support or privacy questions, contact cadence@goldbergconsulting.co.
+
+If you use a TestFlight beta, Apple may share beta usage, crash reports, and feedback with us through TestFlight. Include only information you intend to share when sending feedback.
