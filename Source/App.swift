@@ -11,6 +11,7 @@ final class CapturePanel: NSPanel {
 
 @MainActor final class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCenterDelegate {
     var store: NoteStore!
+    var cloudSync: ICloudSync?
     var window: NSWindow!
     var capturePanel: CapturePanel?
     var statusItem: NSStatusItem!
@@ -18,6 +19,7 @@ final class CapturePanel: NSPanel {
     var priorApp: NSRunningApplication?
     func applicationDidFinishLaunching(_ notification: Notification) {
         store = NoteStore()
+        cloudSync = ICloudSync(store: store)
         UNUserNotificationCenter.current().delegate = self
         window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 1230, height: 790), styleMask: [.titled, .closable, .miniaturizable, .resizable, .fullSizeContentView], backing: .buffered, defer: false)
         window.title = "measured.one — Notes"

@@ -34,6 +34,7 @@ struct StripeMark: Shape {
     }
 }
 struct LibraryView: View {
+    @AppStorage("iCloudSyncEnabled") private var syncEnabled = true
     @ObservedObject var store: NoteStore
     var capture: () -> Void
     @State private var deleteTarget: UUID?
@@ -54,6 +55,8 @@ struct LibraryView: View {
             VStack(alignment: .leading, spacing: 0) {
                 Brand().padding(.top, 34).padding(.bottom, 24)
                 Button(action: capture) { HStack { Image(systemName: "bolt.fill"); Text("Quick capture"); Spacer(); Text("⌘⇧T").font(.system(size: 11)) }.padding(12).background(accent, in: RoundedRectangle(cornerRadius: 0)).foregroundStyle(ink) }.buttonStyle(.plain)
+                Toggle("iCloud sync", isOn: $syncEnabled).font(.system(size: 11)).padding(.top, 10)
+                Text(store.syncStatus).font(.system(size: 9)).foregroundStyle(muted).lineLimit(3)
                 Text(store.shortcutStatus).font(.system(size: 9)).foregroundStyle(muted).padding(.top, 9)
                 Text("INDEX").font(.system(size: 9, weight: .semibold)).tracking(1.8).foregroundStyle(muted).padding(.top, 35).padding(.bottom, 14)
                 ForEach([("All notes", "square.stack"), ("Pinned", "pin"), ("To-dos", "checkmark.circle"), ("Meetings", "person.2"), ("Reminders", "bell")], id: \.0) { title, icon in
@@ -323,7 +326,7 @@ struct NoteEditor: View {
                 }.padding(.top, 6).frame(width: 220, alignment: .topLeading).frame(maxHeight: .infinity)
             }.frame(maxWidth: .infinity, maxHeight: .infinity)
             HStack { ForEach(Array(note.tags.prefix(compact ? 2 : 4)), id: \.self) { Pill(text: "#" + $0) }; Spacer(); Button { addAction() } label: { Label("Add action", systemImage: "checklist").font(.system(size: 10)) }.buttonStyle(.plain).foregroundStyle(accent) }.padding(.vertical, 12)
-            HStack { Circle().fill(store.status.hasPrefix("Saved") ? Color.black : accent).frame(width: 4, height: 4); Text(store.status).lineLimit(2); Spacer(); Text("@ to connect") }.font(.system(size: 9)).foregroundStyle(muted)
+            HStack { Circle().fill(store.status.hasPrefix("Saved") ? Color.black : accent).frame(width: 4, height: 4); Text(store.status).lineLimit(2); Text(store.syncStatus).lineLimit(2); Spacer(); Text("@ to connect") }.font(.system(size: 9)).foregroundStyle(muted)
         }.padding(compact ? 16 : 20).frame(maxWidth: .infinity, maxHeight: .infinity).background(ink).foregroundStyle(.black).tint(.black).preferredColorScheme(.light)
             .onAppear { if compact { focused = true } }
             .onChange(of: note.body) { old, new in

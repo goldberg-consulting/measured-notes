@@ -12,6 +12,8 @@ import Foundation
         defer { try? FileManager.default.removeItem(at: directory) }
         let storage = directory.appendingPathComponent("notes.json")
         precondition(MeetingRecorder.fileURL(recording, storage: storage)!.lastPathComponent == recording.fileName)
+        var audio = recording; audio.fileName = audio.id.uuidString + ".m4a"
+        precondition(MeetingRecorder.fileURL(audio, storage: storage)?.pathExtension == "m4a")
         var invalid = recording; invalid.fileName = "../../private.mp4"
         precondition(MeetingRecorder.fileURL(invalid, storage: storage) == nil)
         let note = Note(recordings: [recording])

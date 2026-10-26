@@ -1,0 +1,75 @@
+name: MeasuredNotesMobile
+options:
+  bundleIdPrefix: one.measured
+  deploymentTarget:
+    iOS: '26.0'
+settings:
+  base:
+    SWIFT_VERSION: '5.0'
+    DEVELOPMENT_TEAM: 97UY84BV45
+    TARGETED_DEVICE_FAMILY: '1,2'
+targets:
+  MeasuredNotesMobile:
+    attributes:
+      SystemCapabilities:
+        com.apple.iCloud:
+          enabled: 1
+    type: application
+    platform: iOS
+    sources:
+      - path: .
+        excludes: ['project.yml', '*.xcodeproj', 'README.md', 'ExportOptions.plist', 'Tests']
+      - ../Source/Model.swift
+      - ../Source/Tables.swift
+      - ../Source/MarkdownHeadings.swift
+      - ../Source/Export.swift
+      - ../Source/SyncReplica.swift
+      - ../Source/ICloudSync.swift
+      - ../Source/MeetingTranscription.swift
+    info:
+      path: Info.plist
+      properties:
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        NSMicrophoneUsageDescription: Record meeting audio when you choose Start recording.
+        NSSpeechRecognitionUsageDescription: Transcribe your meeting recordings on this device.
+        UIBackgroundModes: [audio]
+        ITSAppUsesNonExemptEncryption: false
+        CFBundleURLTypes:
+          - CFBundleURLName: one.measured.notes.mobile
+            CFBundleURLSchemes: [measurednotes]
+    settings:
+      base:
+        CODE_SIGN_STYLE: Automatic
+        CODE_SIGN_ENTITLEMENTS: iCloud.entitlements
+        PRODUCT_BUNDLE_IDENTIFIER: one.measured.notes.mobile
+        PRODUCT_NAME: Measured Notes
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        GENERATE_INFOPLIST_FILE: YES
+        INFOPLIST_KEY_CFBundleDisplayName: Measured Notes
+        INFOPLIST_KEY_UILaunchScreen_Generation: YES
+        INFOPLIST_KEY_UIApplicationSceneManifest_Generation: YES
+        INFOPLIST_KEY_UISupportedInterfaceOrientations: 'UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight'
+        MARKETING_VERSION: '0.1.0'
+        CURRENT_PROJECT_VERSION: '1'
+    dependencies:
+      - sdk: libsqlite3.tbd
+
+  MobilePasteTests:
+    type: bundle.unit-test
+    platform: iOS
+    sources:
+      - Tests
+      - MobileMarkdownInput.swift
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: YES
+        CODE_SIGNING_ALLOWED: NO
+schemes:
+  MeasuredNotesMobile:
+    build:
+      targets:
+        MeasuredNotesMobile: all
+        MobilePasteTests: [test]
+    test:
+      targets: [MobilePasteTests]

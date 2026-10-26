@@ -7,6 +7,7 @@ trap 'rm -rf "$STAGING"' EXIT
 APP="$STAGING/Measured Notes.app"
 mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources" dist
 xcrun swiftc -module-cache-path "$STAGING/module-cache" Source/*.swift -o "$APP/Contents/MacOS/MeasuredNotes" -target arm64-apple-macos26.0 -O -framework SwiftUI -framework AppKit -framework Carbon -framework FoundationModels -framework UserNotifications -lsqlite3 -framework ScreenCaptureKit -framework Speech -framework AVFoundation
+bash scripts/build-diarizer.sh "$APP"
 ICONSET="$STAGING/AppIcon.iconset"
 mkdir -p "$ICONSET"
 for SIZE in 16 32 128 256 512; do
@@ -35,8 +36,38 @@ cat > "$APP/Contents/Info.plist" <<PLIST
 <key>NSPrincipalClass</key><string>NSApplication</string>
 </dict></plist>
 PLIST
+SIGNING_ENTITLEMENTS=entitlements.plist
+if [[ -n "${ICLOUD_PROFILE:-}" ]]; then
+  test -f "$ICLOUD_PROFILE"
+  security cms -D -i "$ICLOUD_PROFILE" > "$STAGING/profile.plist"
+  python3 - "$STAGING/profile.plist" "$STAGING/iCloud.entitlements" <<'PYPROFILE'
+import datetime, plistlib, sys
+with open(sys.argv[1], 'rb') as file:
+    profile = plistlib.load(file)
+values = profile['Entitlements']
+if values.get('com.apple.application-identifier') != '97UY84BV45.one.measured.notes':
+    raise SystemExit('The iCloud profile does not match Measured Notes.')
+if 'iCloud.one.measured.notes' not in values.get('com.apple.developer.ubiquity-container-identifiers', []):
+    raise SystemExit('The profile does not include the shared iCloud container.')
+services = values.get('com.apple.developer.icloud-services', [])
+if services != '*' and '*' not in services and 'CloudDocuments' not in services:
+    raise SystemExit('The profile does not enable iCloud Documents.')
+if values.get('get-task-allow', False) or profile['ExpirationDate'] <= datetime.datetime.now(datetime.timezone.utc).replace(tzinfo=None):
+    raise SystemExit('A valid distribution provisioning profile is required.')
+keys = ['com.apple.application-identifier', 'com.apple.developer.team-identifier',
+        'com.apple.developer.icloud-container-identifiers', 'com.apple.developer.icloud-container-environment',
+        'com.apple.developer.ubiquity-container-identifiers', 'com.apple.developer.icloud-services']
+entitlements = {key: values[key] for key in keys if key in values}
+entitlements['com.apple.developer.icloud-services'] = ['CloudDocuments']
+entitlements['com.apple.security.device.audio-input'] = True
+with open(sys.argv[2], 'wb') as file:
+    plistlib.dump(entitlements, file)
+PYPROFILE
+  cp "$ICLOUD_PROFILE" "$APP/Contents/embedded.provisionprofile"
+  SIGNING_ENTITLEMENTS="$STAGING/iCloud.entitlements"
+fi
 if [[ -n "${SIGNING_IDENTITY:-}" ]]; then
-  codesign --force --options runtime --timestamp --entitlements entitlements.plist --sign "$SIGNING_IDENTITY" "$APP"
+  codesign --force --options runtime --timestamp --entitlements "$SIGNING_ENTITLEMENTS" --sign "$SIGNING_IDENTITY" "$APP"
 else
   codesign --force --sign - "$APP"
 fi

@@ -1,0 +1,42 @@
+name: MeasuredNotesMac
+options:
+  deploymentTarget:
+    macOS: '26.0'
+settings:
+  base:
+    SWIFT_VERSION: '5.0'
+    DEVELOPMENT_TEAM: 97UY84BV45
+targets:
+  MeasuredNotesMac:
+    type: application
+    platform: macOS
+    attributes:
+      SystemCapabilities:
+        com.apple.iCloud:
+          enabled: 1
+    sources:
+      - ../Source
+    info:
+      path: Info.plist
+      properties:
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        NSMicrophoneUsageDescription: Include your voice in meeting recordings when you enable the microphone.
+        NSSpeechRecognitionUsageDescription: Transcribe meeting recordings on this Mac.
+        NSScreenCaptureUsageDescription: Record the meeting window you select and its audio.
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: one.measured.notes
+        PRODUCT_NAME: Measured Notes
+        CODE_SIGN_ENTITLEMENTS: ../iCloud.entitlements
+        CODE_SIGN_STYLE: Automatic
+        ENABLE_HARDENED_RUNTIME: YES
+        MARKETING_VERSION: '0.1.10'
+        CURRENT_PROJECT_VERSION: '1'
+    postBuildScripts:
+      - name: Bundle speaker labeling helper
+        script: |
+          SIGNING_IDENTITY="$EXPANDED_CODE_SIGN_IDENTITY" bash "$SRCROOT/../scripts/build-diarizer.sh" "$TARGET_BUILD_DIR/$WRAPPER_NAME"
+        basedOnDependencyAnalysis: false
+    dependencies:
+      - sdk: libsqlite3.tbd

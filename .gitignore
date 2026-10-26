@@ -2,3 +2,10 @@ dist/
 *.app/
 .DS_Store
 START-HERE.txt
+
+iOS/*.xcodeproj/
+macOS/*.xcodeproj/
+*.xcarchive/
+*.ipa
+Tools/MeasuredDiarizer/.build/
+Tools/MeasuredDiarizer/.swiftpm/

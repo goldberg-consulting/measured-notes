@@ -53,7 +53,7 @@ enum NotesExport {
             try check(sqlite3_step(statement))
         }
         try execute("""
-        PRAGMA user_version = 5;
+        PRAGMA user_version = 6;
         BEGIN TRANSACTION;
         CREATE TABLE metadata (key TEXT PRIMARY KEY, value TEXT NOT NULL);
         CREATE TABLE notes (id TEXT PRIMARY KEY, position INTEGER NOT NULL, title TEXT NOT NULL, body TEXT NOT NULL, kind TEXT NOT NULL, updated_at TEXT NOT NULL, pinned INTEGER NOT NULL, summary TEXT NOT NULL, reminder_at TEXT, created_at TEXT NOT NULL, origin_id TEXT);
@@ -64,7 +64,7 @@ enum NotesExport {
         CREATE TABLE people (note_id TEXT NOT NULL REFERENCES notes(id), position INTEGER NOT NULL, person TEXT NOT NULL);
         CREATE TABLE images (id TEXT PRIMARY KEY, note_id TEXT NOT NULL REFERENCES notes(id), position INTEGER NOT NULL, name TEXT NOT NULL, caption TEXT NOT NULL, width REAL NOT NULL, mime_type TEXT NOT NULL, data BLOB NOT NULL);
         CREATE TABLE recordings (id TEXT PRIMARY KEY, note_id TEXT NOT NULL REFERENCES notes(id), position INTEGER NOT NULL, started_at TEXT NOT NULL, file_name TEXT NOT NULL, locale TEXT NOT NULL, microphone INTEGER NOT NULL, status TEXT NOT NULL);
-        CREATE TABLE transcript_segments (id TEXT PRIMARY KEY, recording_id TEXT NOT NULL REFERENCES recordings(id), position INTEGER NOT NULL, seconds REAL NOT NULL, speaker TEXT NOT NULL, text TEXT NOT NULL);
+        CREATE TABLE transcript_segments (id TEXT PRIMARY KEY, recording_id TEXT NOT NULL REFERENCES recordings(id), position INTEGER NOT NULL, seconds REAL NOT NULL, end_seconds REAL, speaker TEXT NOT NULL, text TEXT NOT NULL);
         CREATE TABLE documents (id TEXT PRIMARY KEY, note_id TEXT NOT NULL REFERENCES notes(id), position INTEGER NOT NULL, name TEXT NOT NULL, added_at TEXT NOT NULL, data BLOB NOT NULL);
         CREATE TABLE archive (id INTEGER PRIMARY KEY CHECK (id = 1), json TEXT NOT NULL);
         """)
@@ -86,7 +86,7 @@ enum NotesExport {
             for (position, recording) in (note.recordings ?? []).enumerated() {
                 try insert("INSERT INTO recordings VALUES (?, ?, ?, ?, ?, ?, ?, ?)", [recording.id.uuidString, id, String(position), dates.string(from: recording.started), recording.fileName, recording.locale, recording.microphone ? "1" : "0", recording.status])
                 for (position, segment) in recording.transcript.enumerated() {
-                    try insert("INSERT INTO transcript_segments VALUES (?, ?, ?, ?, ?, ?)", [segment.id.uuidString, recording.id.uuidString, String(position), String(segment.seconds), segment.speaker, segment.text])
+                    try insert("INSERT INTO transcript_segments VALUES (?, ?, ?, ?, ?, ?, ?)", [segment.id.uuidString, recording.id.uuidString, String(position), String(segment.seconds), segment.endSeconds.map { String($0) }, segment.speaker, segment.text])
                 }
             }
             for (position, image) in (note.images ?? []).enumerated() {
