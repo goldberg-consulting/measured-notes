@@ -16,7 +16,8 @@ References: [Design for iPhone Duo](https://developer.apple.com/videos/play/tech
 - Shared note storage, source relationships, creation-order timeline, collections, and tags.
 - Markdown editing and preview; editable tables with row, column, and cell colors.
 - Independent actions and subitems.
-- Embedded images and documents, image captions and sizing, and document sharing.
+- Paste links, images, videos, and supported documents into the Markdown editor. A secure Paste button sits above the keyboard. Attachments are copied into the note; preview opens documents and videos. Images are limited to 30 MB before normalization; other attachments to 100 MB.
+- Image captions and sizing, photo/video selection, and a People screen for adding and removing note labels.
 - Email and Messages through the system share sheet; type `@` for sharing or adding a person.
 - Reminders and on-device summaries when Apple Intelligence is available.
 - JSON and SQLite exports using the same format as the Mac app.
@@ -39,7 +40,7 @@ xcodebuild -project iOS/MeasuredNotesMobile.xcodeproj \
   -derivedDataPath /tmp/measured-mobile-build CODE_SIGNING_ALLOWED=NO build
 ```
 
-Open the generated project in Xcode to run on a signed device. Device provisioning with the shared iCloud container is configured. TestFlight upload and real-device sync verification remain outstanding. The checked-in project specification is authoritative; the generated Xcode project is ignored.
+Open the generated project in Xcode to run on a signed device. Device provisioning with the shared iCloud container is configured. Internal TestFlight builds are available; real-device sync verification remains outstanding. The checked-in project specification is authoritative; the generated Xcode project is ignored.
 
 ## Reproducible App Store export
 

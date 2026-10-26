@@ -20,3 +20,8 @@ Current status: all checks below await real devices.
 Record failures before inviting additional testers. Do not mark a check passed based only on an archive, signing success, or a simulator layout.
 
 13. **Compact browser:** On the Duo front screen, open All notes, switch filters, search, select several notes, and create a note. The browser must remain open throughout. Done closes it onto the selected note. Reopen it, visit Index and settings, return, and close it. Confirm unfolding retains the selected note and displays the regular three-column layout.
+
+14. On the closed/front screen, open a to-do note → Actions and attachments. Add an action and subitem with the keyboard open. Tap Done in the panel header: return to the note with edits saved. Tap All notes to browse the library. Repeat after scrolling the action list and after expanding/folding the device; Done must remain visible and close the panel.
+
+15. Paste a copied HTTPS link, image, and video using both the editor’s Paste menu and the secure Paste button. Check insertion at the cursor, undo, saved attachment bytes after relaunch, and Preview playback/opening. Try a PDF copied from Files and Photos video selection. Check errors for images above 30 MB and other files above 100 MB.
+16. Use Note options → Add person and Actions → Manage people. Add a name/email, delete it, and close with Done while the keyboard is visible. Check that no message or invitation is sent.

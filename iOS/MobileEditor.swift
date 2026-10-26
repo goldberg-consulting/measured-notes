@@ -15,7 +15,6 @@ struct MobileNoteEditor: View {
     @State private var organize = false
     @State private var importFiles = false
     @State private var photo: PhotosPickerItem?
-    @State private var person = ""
     @State private var addPerson = false
     @State private var remind = false
     @State private var reminderDate = Date().addingTimeInterval(3600)
@@ -41,7 +40,7 @@ struct MobileNoteEditor: View {
                 Button { meetings = true } label: { Label(recorder.noteID == id ? recorder.phase : "Meeting recordings", systemImage: recorder.noteID == id ? "record.circle" : "mic") }.padding(.horizontal)
             }
             if preview { MobilePreview(note: note, edit: { table = $0 }).padding(.horizontal) }
-            else { TextEditor(text: text(\.body)).font(.body.monospaced()).padding(.horizontal, 12).accessibilityLabel("Markdown editor") }
+            else { MobileMarkdownInput(text: text(\.body), importMedia: importMedia, reportError: { error = $0 }).padding(.horizontal, 12) }
         }.padding(.top, 8)
             .navigationTitle(note.kind).navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -53,7 +52,7 @@ struct MobileNoteEditor: View {
                     Button("New table", systemImage: "tablecells") { table = .blank(rows: 3, columns: 3) }
                     ForEach(Array(MarkdownTable.parse(note.body).enumerated()), id: \.element.id) { index, value in Button("Edit table \(index + 1)") { table = value } }
                     Button("Attach files", systemImage: "paperclip") { importFiles = true }
-                    PhotosPicker(selection: $photo, matching: .images) { Label("Add image", systemImage: "photo") }
+                    PhotosPicker(selection: $photo, matching: .any(of: [.images, .videos])) { Label("Add photo or video", systemImage: "photo") }
                     Button("Assign collections", systemImage: "folder") { organize = true }
                     Button("Add person", systemImage: "person.badge.plus") { addPerson = true }
                     Button("Set reminder", systemImage: "bell") { remind = true }
@@ -63,7 +62,21 @@ struct MobileNoteEditor: View {
                 } label: { Label("Note options", systemImage: "ellipsis.circle") } }
             }
             .inspector(isPresented: $inspector) {
-                MobileInspector(store: store, id: id).inspectorColumnWidth(min: 220, ideal: 280, max: 360)
+                MobileInspector(store: store, id: id)
+                    .safeAreaInset(edge: .top, spacing: 0) {
+                        VStack(spacing: 0) {
+                            HStack {
+                                Text("Actions and attachments").font(.headline)
+                                Spacer()
+                                Button("Done") { inspector = false }
+                                    .fontWeight(.semibold)
+                                    .accessibilityHint("Return to the note")
+                            }.padding()
+                            Divider()
+                        }.background(.background)
+                    }
+                    .inspectorColumnWidth(min: 220, ideal: 280, max: 360)
+                    .presentationDetents([.large])
             }
             .sheet(isPresented: $meetings) { MobileMeetings(store: store, id: id) }
             .sheet(item: $table) { value in MobileTableEditor(table: value) { result in store.update(id) { $0.body = result.replacing(in: $0.body) } } }
@@ -90,36 +103,51 @@ struct MobileNoteEditor: View {
                 Button("Add person") { removeAt(); addPerson = true }
                 Button("Cancel", role: .cancel) {}
             }
-            .alert("Add person", isPresented: $addPerson) {
-                TextField("Name", text: $person)
-                Button("Add") { let name = person.trimmingCharacters(in: .whitespacesAndNewlines); if !name.isEmpty { store.update(id) { if !$0.people.contains(name) { $0.people.append(name) } } }; person = "" }
-                Button("Cancel", role: .cancel) { person = "" }
-            }
+            .sheet(isPresented: $addPerson) { MobilePeopleEditor(store: store, id: id) }
             .alert("Could not attach file", isPresented: Binding(get: { !error.isEmpty }, set: { if !$0 { error = "" } })) { Button("OK") { error = "" } } message: { Text(error) }
             .fileImporter(isPresented: $importFiles, allowedContentTypes: [.item], allowsMultipleSelection: true) { result in
                 do { for url in try result.get() { try attach(url) } } catch { self.error = error.localizedDescription }
             }
             .onChange(of: photo) { _, item in
-                Task { do { if let data = try await item?.loadTransferable(type: Data.self) { try addImage(data, name: "Photo.png") }; photo = nil } catch { self.error = error.localizedDescription } }
+                Task {
+                    guard let item else { return }
+                    do {
+                        let transfer = try await item.loadTransferable(type: MobilePickedMedia.self)
+                        if let transfer {
+                            let markdown = try importMedia(transfer.data, transfer.name, transfer.type)
+                            store.update(id) { $0.body += "\n" + markdown + "\n" }
+                        }
+                    } catch { self.error = error.localizedDescription }
+                    photo = nil
+                }
             }
     }
     func removeAt() { if note.body.hasSuffix("@") { store.update(id) { $0.body.removeLast() } } }
-    func addImage(_ data: Data, name: String) throws {
+    func importMedia(_ data: Data, _ name: String, _ type: UTType) throws -> String {
+        guard store.notes.contains(where: { $0.id == id }) else { throw CocoaError(.fileNoSuchFile) }
+        guard data.count <= MobileMediaTransfer.limit else { throw CocoaError(.fileReadTooLarge) }
+        if type.conforms(to: .image) { return try addImage(data, name: name) }
+        let attachment = NoteDocument(name: name, data: data)
+        store.update(id) { $0.documents = ($0.documents ?? []) + [attachment] }
+        return attachment.markdown
+    }
+    func addImage(_ data: Data, name: String) throws -> String {
         guard data.count <= 30 * 1024 * 1024, let image = UIImage(data: data) else { throw CocoaError(.fileReadCorruptFile) }
         let scale = min(1, 2400 / max(image.size.width, image.size.height))
         let size = CGSize(width: max(1, image.size.width * scale), height: max(1, image.size.height * scale))
         let format = UIGraphicsImageRendererFormat(); format.scale = 1
         let normalized = UIGraphicsImageRenderer(size: size, format: format).pngData { _ in image.draw(in: CGRect(origin: .zero, size: size)) }
         let attachment = NoteImage(name: name, data: normalized)
-        store.update(id) { $0.images = ($0.images ?? []) + [attachment]; $0.body += "\n" + attachment.markdown + "\n" }
+        store.update(id) { $0.images = ($0.images ?? []) + [attachment] }
+        return attachment.markdown
     }
     func attach(_ url: URL) throws {
         let access = url.startAccessingSecurityScopedResource(); defer { if access { url.stopAccessingSecurityScopedResource() } }
         let values = try url.resourceValues(forKeys: [.fileSizeKey, .isRegularFileKey, .contentTypeKey])
-        guard values.isRegularFile == true, (values.fileSize ?? Int.max) <= 30 * 1024 * 1024 else { throw CocoaError(.fileReadTooLarge) }
+        guard values.isRegularFile == true, (values.fileSize ?? Int.max) <= MobileMediaTransfer.limit else { throw CocoaError(.fileReadTooLarge) }
         let data = try Data(contentsOf: url)
-        if values.contentType?.conforms(to: .image) == true { try addImage(data, name: url.lastPathComponent) }
-        else { let attachment = NoteDocument(name: url.lastPathComponent, data: data); store.update(id) { $0.documents = ($0.documents ?? []) + [attachment]; $0.body += "\n" + attachment.markdown + "\n" } }
+        let markdown = try importMedia(data, url.lastPathComponent, values.contentType ?? .data)
+        store.update(id) { $0.body += "\n" + markdown + "\n" }
     }
 }
 
@@ -127,6 +155,7 @@ struct MobileInspector: View {
     @ObservedObject var store: NoteStore
     let id: UUID
     @State private var shareURL: URL?
+    @State private var people = false
     @State private var error = ""
     var note: Note { store.notes.first { $0.id == id } ?? Note() }
     var body: some View {
@@ -167,10 +196,11 @@ struct MobileInspector: View {
                     }.contextMenu { Button("Remove", role: .destructive) { store.update(id) { $0.documents?.removeAll { $0.id == document.id }; $0.body = $0.body.replacingOccurrences(of: document.markdown, with: "") } } }
                 }
             }
-            Section("People") { ForEach(note.people, id: \.self) { person in Text(person).contextMenu { Button("Remove") { store.update(id) { $0.people.removeAll { $0 == person } } } } } }
+            Section { Button("Manage people", systemImage: "person.badge.plus") { people = true }; ForEach(note.people, id: \.self) { person in Text(person).contextMenu { Button("Remove") { store.update(id) { $0.people.removeAll { $0 == person } } } } } }
             if !note.tags.isEmpty { Section("Tags") { Text(note.tags.map { "#" + $0 }.joined(separator: " ")) } }
             if let reminder = note.reminder { Section("Reminder") { Text(reminder, format: .dateTime) } }
         }.listStyle(.insetGrouped)
+            .sheet(isPresented: $people) { MobilePeopleEditor(store: store, id: id) }
             .sheet(isPresented: Binding(get: { shareURL != nil }, set: { if !$0 { shareURL = nil } })) { if let shareURL { MobileShare(items: [shareURL]) } }
             .alert("Could not open document", isPresented: Binding(get: { !error.isEmpty }, set: { if !$0 { error = "" } })) { Button("OK") { error = "" } } message: { Text(error) }
     }

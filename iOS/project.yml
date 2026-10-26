@@ -18,7 +18,7 @@ targets:
     platform: iOS
     sources:
       - path: .
-        excludes: ['project.yml', '*.xcodeproj', 'README.md', 'ExportOptions.plist']
+        excludes: ['project.yml', '*.xcodeproj', 'README.md', 'ExportOptions.plist', 'Tests']
       - ../Source/Model.swift
       - ../Source/Tables.swift
       - ../Source/MarkdownHeadings.swift
@@ -54,3 +54,22 @@ targets:
         CURRENT_PROJECT_VERSION: '1'
     dependencies:
       - sdk: libsqlite3.tbd
+
+  MobilePasteTests:
+    type: bundle.unit-test
+    platform: iOS
+    sources:
+      - Tests
+      - MobileMarkdownInput.swift
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: YES
+        CODE_SIGNING_ALLOWED: NO
+schemes:
+  MeasuredNotesMobile:
+    build:
+      targets:
+        MeasuredNotesMobile: all
+        MobilePasteTests: [test]
+    test:
+      targets: [MobilePasteTests]

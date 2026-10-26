@@ -1,4 +1,6 @@
 import SwiftUI
+import QuickLook
+import UniformTypeIdentifiers
 
 private let colors = ["Monochrome", "Gold", "Blue", "Green", "Rose", "Purple", "Slate"]
 private func tableTint(_ name: String) -> Color {
@@ -76,7 +78,7 @@ struct MobilePreview: View {
                     } else if let image = note.images?.first(where: { $0.markdown == lines[index].trimmingCharacters(in: .whitespaces) }), let rendered = UIImage(data: image.data) {
                         VStack(alignment: .leading) { Image(uiImage: rendered).resizable().scaledToFit().frame(maxWidth: image.width); if !image.caption.isEmpty { Text(image.caption).font(.caption).foregroundStyle(.secondary) } }
                     } else if let document = note.documents?.first(where: { $0.markdown == lines[index].trimmingCharacters(in: .whitespaces) }) {
-                        Label(document.name, systemImage: "doc").font(.callout)
+                        MobileDocumentPreview(document: document)
                     } else {
                         MobileMarkdownLine(lines: lines, index: index)
                     }
@@ -104,9 +106,53 @@ struct MobileMarkdownLine: View {
         }
     }
     private func inline(_ value: String) -> AttributedString {
-        (try? AttributedString(markdown: value, options: .init(interpretedSyntax: .inlineOnlyPreservingWhitespace))) ?? AttributedString(value)
+        var rendered = (try? AttributedString(markdown: value, options: .init(interpretedSyntax: .inlineOnlyPreservingWhitespace))) ?? AttributedString(value)
+        let plain = String(rendered.characters)
+        if let detector = try? NSDataDetector(types: NSTextCheckingResult.CheckingType.link.rawValue) {
+            for match in detector.matches(in: plain, range: NSRange(plain.startIndex..., in: plain)) {
+                guard let url = match.url, ["http", "https", "mailto"].contains(url.scheme ?? ""),
+                      let range = Range(match.range, in: plain),
+                      let lower = AttributedString.Index(range.lowerBound, within: rendered),
+                      let upper = AttributedString.Index(range.upperBound, within: rendered),
+                      rendered[lower..<upper].link == nil else { continue }
+                rendered[lower..<upper].link = url
+            }
+        }
+        return rendered
     }
     private func font(_ level: Int) -> Font {
         switch level { case 1: return .largeTitle; case 2: return .title; case 3: return .title2; case 4: return .title3; case 5: return .headline; default: return .subheadline }
+    }
+}
+
+struct MobileDocumentPreview: View {
+    let document: NoteDocument
+    @State private var previewURL: URL?
+    @State private var error = ""
+    private var video: Bool {
+        guard let type = UTType(filenameExtension: (document.name as NSString).pathExtension) else { return false }
+        return type.conforms(to: .movie) || type.conforms(to: .video)
+    }
+    var body: some View {
+        Button {
+            do {
+                let folder = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+                try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+                let url = folder.appendingPathComponent((document.name as NSString).lastPathComponent)
+                try document.data.write(to: url, options: .atomic)
+                previewURL = url
+            } catch { self.error = error.localizedDescription }
+        } label: {
+            Label(video ? "Play " + document.name : document.name, systemImage: video ? "play.rectangle" : "doc")
+                .frame(maxWidth: .infinity, alignment: .leading).padding(12)
+                .background(.quaternary, in: RoundedRectangle(cornerRadius: 8))
+        }
+        .quickLookPreview($previewURL)
+        .onChange(of: previewURL) { old, new in
+            if new == nil, let old { try? FileManager.default.removeItem(at: old.deletingLastPathComponent()) }
+        }
+        .alert("Could not open attachment", isPresented: Binding(get: { !error.isEmpty }, set: { if !$0 { error = "" } })) {
+            Button("OK") { error = "" }
+        } message: { Text(error) }
     }
 }
