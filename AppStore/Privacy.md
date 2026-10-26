@@ -19,3 +19,5 @@ The app contains no advertising or third-party analytics SDK. Apple may process 
 For support or privacy questions, contact cadence@goldbergconsulting.co.
 
 If you use a TestFlight beta, Apple may share beta usage, crash reports, and feedback with us through TestFlight. Include only information you intend to share when sending feedback.
+
+On Mac, optional speaker labeling downloads FluidAudio Core ML models from Hugging Face. The model host receives ordinary download requests, including your IP address; meeting audio and transcript contents are processed locally and are not sent to that host. Downloaded models are cached in Application Support/FluidAudio/Models. Speaker numbers estimate voices within a recording, not a person’s identity.

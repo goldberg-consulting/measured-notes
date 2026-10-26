@@ -44,7 +44,7 @@ enum MeetingTranscription {
             var segments: [TranscriptSegment] = []
             for try await result in transcriber.results {
                 let text = String(result.text.characters).trimmingCharacters(in: .whitespacesAndNewlines)
-                if !text.isEmpty { segments.append(TranscriptSegment(seconds: max(0, result.range.start.seconds), text: text)) }
+                if !text.isEmpty { segments.append(TranscriptSegment(seconds: max(0, result.range.start.seconds), endSeconds: result.range.end.seconds, text: text)) }
             }
             return segments
         }

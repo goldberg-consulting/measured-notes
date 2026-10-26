@@ -7,3 +7,5 @@ iOS/*.xcodeproj/
 macOS/*.xcodeproj/
 *.xcarchive/
 *.ipa
+Tools/MeasuredDiarizer/.build/
+Tools/MeasuredDiarizer/.swiftpm/

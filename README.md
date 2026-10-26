@@ -12,7 +12,7 @@ A small macOS notes app from measured.one. Press **⌘⇧T** from any app to cap
 
 ## iPhone companion
 
-An adaptive iOS companion is in development. See [iOS build instructions and current limitations](iOS/README.md). It is not yet available through TestFlight, and iCloud sync is in device testing.
+An adaptive iOS companion is in development. See [iOS build instructions and current limitations](iOS/README.md). It is available to invited internal TestFlight testers; iCloud sync is in device testing.
 
 ## Install
 
@@ -48,13 +48,13 @@ Use **File → Show notes storage in Finder** to find it.
 
 Use **File → Export all notes as SQLite…** or **Export all notes as JSON…** to save a portable snapshot. Exports include all notes, checklists and subitems, collection assignments, tags, people, summaries, and reminders. Exporting does not change the app’s storage. SQLite exports are snapshots; editing them does not update the app, and there is no import command yet.
 
-The SQLite file has `notes`, `actions`, `collections`, `note_collections`, `tags`, `people`, `images`, `recordings`, `transcript_segments`, and `documents` tables. Dates use UTC ISO 8601 strings; `position` preserves archive order. `notes.created_at` records timeline order and `notes.origin_id` links related notes to their source. `PRAGMA user_version` is the schema version (currently 5). The `archive` table also holds a complete JSON copy for lossless conversion. Table color metadata remains in the Markdown body.
+The SQLite file has `notes`, `actions`, `collections`, `note_collections`, `tags`, `people`, `images`, `recordings`, `transcript_segments`, and `documents` tables. Dates use UTC ISO 8601 strings; `position` preserves archive order. `notes.created_at` records timeline order and `notes.origin_id` links related notes to their source. `PRAGMA user_version` is the schema version (currently 6). The `archive` table also holds a complete JSON copy for lossless conversion. Table color metadata remains in the Markdown body.
 
-Back up the storage folder to keep a copy. There is no account, server, or cloud sync. The app does not upload notes to a model service.
+Back up the storage folder to keep a copy. There is no separate Measured Notes account or developer-hosted notes server. Optional iCloud sync uses your Apple Account. The app does not upload notes to a model service.
 
 ## Build
 
-Requires Xcode 26 or later, its command-line tools, and an Apple silicon Mac.
+Requires Xcode with Swift 6.2 or later, its command-line tools, and an Apple silicon Mac.
 
 ```sh
 ./test.sh
@@ -87,7 +87,7 @@ The app saves the selected window as an MP4 with application audio and the optio
 
 After recording stops, Apple Speech transcribes on-device. A language model may need to download first. Transcription does not require Apple Intelligence to be enabled, but the note summary does. If transcription fails or is cancelled, the video stays available for retry.
 
-Expand **Recordings** to play or save a video, open its transcript, or retry transcription. Transcript text and speaker labels can be edited. Automatic speaker diarization is not included. The running summary uses the note and transcript, subject to its existing 7,000-character limit.
+Expand **Recordings** to play or save a video, open its transcript, or retry transcription. Transcript text and speaker labels can be edited. On Mac, choose **Label speakers…** after transcription to estimate numbered speaker labels locally. The first run downloads FluidAudio’s Core ML speaker models from Hugging Face into `~/Library/Application Support/FluidAudio/Models/`; meeting audio is not uploaded. Existing labels and edits are preserved. Rename labels in the transcript. Passages containing several voices can show **Multiple speakers**; review labels before relying on them. Mobile recordings can also be labeled on a Mac after syncing. The running summary uses the note and transcript, subject to its existing 7,000-character limit.
 
 Videos are stored under `~/Library/Application Support/one.measured.notes/Recordings/`. Back up the whole storage folder to retain them. JSON and SQLite exports contain transcripts and recording metadata, but not video bytes; use **Save video…** for a portable MP4. Deleting a note does not erase its recording files.
 
@@ -120,3 +120,5 @@ Sync can be switched off in the index. Signing out pauses sync. Changing Apple A
 For a Homebrew release with iCloud enabled, provide `ICLOUD_PROFILE` pointing to the exported Developer ID provisioning profile as well as the usual signing identity and notary profile. The build verifies the app identifier, iCloud capability, and profile expiry before embedding it. A local build without a matching profile remains usable offline.
 
 `macOS/project.yml` provides an Xcode archive/provisioning target. Generate it with `xcodegen generate --spec macOS/project.yml`. App Store preparation is tracked in [AppStore/README.md](AppStore/README.md).
+
+Speaker labeling uses [FluidAudio](https://github.com/FluidInference/FluidAudio) (Apache 2.0) and Core ML conversions by Fluid Inference of pyannote Community-1, WeSpeaker, and BUT Speech@FIT models ([CC-BY-4.0](https://creativecommons.org/licenses/by/4.0/)). Notices are bundled in `Resources/Licenses`. The speaker helper is pinned in `Tools/MeasuredDiarizer/Package.resolved`; building the Mac app requires Swift 6.2 or later and downloads this dependency.

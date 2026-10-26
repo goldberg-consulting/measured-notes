@@ -44,6 +44,7 @@ struct NoteDocument: Codable, Identifiable, Equatable {
 struct TranscriptSegment: Codable, Identifiable, Equatable {
     var id = UUID()
     var seconds: Double
+    var endSeconds: Double?
     var speaker = ""
     var text: String
     var timestamp: String {

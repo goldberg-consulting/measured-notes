@@ -2,6 +2,25 @@ import SwiftUI
 import AppKit
 
 final class MarkdownTextView: NSTextView {
+    private(set) var isTornDown = false
+    private let editorUndoManager = UndoManager()
+    override var undoManager: UndoManager? { editorUndoManager }
+
+    func replaceExternalText(_ text: String) {
+        breakUndoCoalescing()
+        editorUndoManager.removeAllActions()
+        string = text
+    }
+
+    func tearDown() {
+        isTornDown = true
+        breakUndoCoalescing()
+        editorUndoManager.removeAllActions()
+        delegate = nil
+        insertTable = nil
+        importImages = nil
+    }
+
     var insertTable: ((NSRange) -> Void)?
     var importImages: ((NSPasteboard) -> String?)?
     override func draggingEntered(_ sender: NSDraggingInfo) -> NSDragOperation {
@@ -74,14 +93,17 @@ struct MarkdownEditor: NSViewRepresentable {
         guard let editor = scroll.documentView as? MarkdownTextView else { return }
         if editor.string != text {
             let selection = editor.selectedRange()
-            editor.string = text
+            editor.replaceExternalText(text)
             let length = (text as NSString).length
             editor.setSelectedRange(NSRange(location: min(selection.location, length), length: min(selection.length, max(0, length - selection.location))))
         }
         if focus && !context.coordinator.wasFocused {
-            DispatchQueue.main.async { if editor.window != nil { editor.window?.makeFirstResponder(editor) } }
+            DispatchQueue.main.async { if !editor.isTornDown, editor.window != nil { editor.window?.makeFirstResponder(editor) } }
         }
         context.coordinator.wasFocused = focus
+    }
+    static func dismantleNSView(_ scroll: NSScrollView, coordinator: Coordinator) {
+        (scroll.documentView as? MarkdownTextView)?.tearDown()
     }
     class Coordinator: NSObject, NSTextViewDelegate {
         var parent: MarkdownEditor

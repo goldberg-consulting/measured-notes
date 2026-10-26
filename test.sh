@@ -12,7 +12,7 @@ xcrun swiftc -module-cache-path "$STAGING/module-cache" -target arm64-apple-maco
 "$STAGING/ExportChecks"
 xcrun swiftc -module-cache-path "$STAGING/module-cache" -target arm64-apple-macos26.0 Source/Model.swift Source/Images.swift Tests/ImageChecks.swift -o "$STAGING/ImageChecks" -framework FoundationModels -framework UserNotifications -framework AppKit -framework SwiftUI
 "$STAGING/ImageChecks"
-xcrun swiftc -module-cache-path "$STAGING/module-cache" -target arm64-apple-macos26.0 Source/Model.swift Source/Meetings.swift Source/MeetingTranscription.swift Tests/MeetingChecks.swift -o "$STAGING/MeetingChecks" -framework FoundationModels -framework UserNotifications -framework AppKit -framework SwiftUI -framework ScreenCaptureKit -framework Speech -framework AVFoundation
+xcrun swiftc -module-cache-path "$STAGING/module-cache" -target arm64-apple-macos26.0 Source/Model.swift Source/Meetings.swift Source/MeetingTranscription.swift Source/MeetingDiarization.swift Source/SpeakerAlignment.swift Tests/MeetingChecks.swift -o "$STAGING/MeetingChecks" -framework FoundationModels -framework UserNotifications -framework AppKit -framework SwiftUI -framework ScreenCaptureKit -framework Speech -framework AVFoundation
 "$STAGING/MeetingChecks"
 xcrun swiftc -module-cache-path "$STAGING/module-cache" -target arm64-apple-macos26.0 Source/Model.swift Source/Images.swift Source/Documents.swift Tests/DocumentChecks.swift -o "$STAGING/DocumentChecks" -framework FoundationModels -framework UserNotifications -framework AppKit -framework SwiftUI
 "$STAGING/DocumentChecks"
@@ -23,3 +23,8 @@ xcrun swiftc -module-cache-path "$STAGING/module-cache" -target arm64-apple-maco
 "$STAGING/SyncChecks"
 xcrun swiftc -module-cache-path "$STAGING/module-cache" Source/MarkdownHeadings.swift Tests/MarkdownHeadingChecks.swift -o "$STAGING/MarkdownHeadingChecks"
 "$STAGING/MarkdownHeadingChecks"
+
+xcrun swiftc -module-cache-path "$STAGING/module-cache" -target arm64-apple-macos26.0 Source/Model.swift Source/SpeakerAlignment.swift Tests/SpeakerAlignmentChecks.swift -o "$STAGING/SpeakerAlignmentChecks" -framework FoundationModels -framework UserNotifications
+"$STAGING/SpeakerAlignmentChecks"
+xcrun swiftc -module-cache-path "$STAGING/module-cache" Source/MarkdownEditor.swift Tests/EditorUndoChecks.swift -o "$STAGING/EditorUndoChecks" -framework SwiftUI -framework AppKit
+"$STAGING/EditorUndoChecks"

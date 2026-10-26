@@ -142,11 +142,40 @@ import Speech
         transcriptionTask = Task { await transcribe(recording) }
     }
     func cancelTranscription() {
-        guard phase == "Transcribing on this Mac" else { return }
+        guard phase == "Transcribing on this Mac" || phase == "Labeling speakers on this Mac" else { return }
         transcriptionTask?.cancel()
-        updateRecord { $0.status = "Recorded · transcription cancelled" }
+        updateRecord { $0.status = $0.transcript.isEmpty ? "Recorded · transcription cancelled" : "Transcribed · speaker labeling cancelled" }
         reset()
     }
+    func labelSpeakers(_ recording: MeetingRecording, store: NoteStore, noteID: UUID) {
+        guard !busy, !recording.transcript.isEmpty, let url = Self.fileURL(recording, storage: store.storageURL) else { return }
+        self.store = store; self.noteID = noteID; self.record = recording
+        store.recordingNoteID = noteID; errorMessage = nil
+        phase = "Labeling speakers on this Mac"
+        transcriptionTask = Task {
+            do {
+                let labeled = try await MeetingDiarization.label(url: url, segments: recording.transcript)
+                guard record?.id == recording.id, !Task.isCancelled else { return }
+                updateRecord { current in
+                    // Only add labels to unchanged, unlabeled segments; preserve concurrent edits.
+                    for i in current.transcript.indices {
+                        guard current.transcript[i].speaker.isEmpty,
+                              let original = recording.transcript.first(where: { $0.id == current.transcript[i].id }),
+                              current.transcript[i] == original,
+                              let result = labeled.first(where: { $0.id == original.id }) else { continue }
+                        current.transcript[i].speaker = result.speaker
+                    }
+                    current.status = current.transcript.contains { !$0.speaker.isEmpty } ? "Transcribed · speaker labels added" : "Transcribed · no speakers identified"
+                }
+                reset()
+            } catch {
+                guard record?.id == recording.id, !Task.isCancelled else { return }
+                errorMessage = error.localizedDescription
+                reset()
+            }
+        }
+    }
+
     private func transcribe(_ recording: MeetingRecording) async {
         guard let store, let url = Self.fileURL(recording, storage: store.storageURL) else { fail("Invalid recording path."); return }
         phase = "Transcribing on this Mac"

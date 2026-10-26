@@ -7,6 +7,7 @@ trap 'rm -rf "$STAGING"' EXIT
 APP="$STAGING/Measured Notes.app"
 mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources" dist
 xcrun swiftc -module-cache-path "$STAGING/module-cache" Source/*.swift -o "$APP/Contents/MacOS/MeasuredNotes" -target arm64-apple-macos26.0 -O -framework SwiftUI -framework AppKit -framework Carbon -framework FoundationModels -framework UserNotifications -lsqlite3 -framework ScreenCaptureKit -framework Speech -framework AVFoundation
+bash scripts/build-diarizer.sh "$APP"
 ICONSET="$STAGING/AppIcon.iconset"
 mkdir -p "$ICONSET"
 for SIZE in 16 32 128 256 512; do

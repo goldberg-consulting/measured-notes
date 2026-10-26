@@ -12,7 +12,7 @@ import SQLite3
         var note = Note(title: "'Quoted' 📝", body: "| A | B |\nline\u{0}end", pinned: true, tags: ["one", "two"], people: ["A Person"], summary: "Summary", reminder: Date(timeIntervalSince1970: 1800000000), actions: [parent, child], collectionIDs: [collection.id])
         let image = NoteImage(name: "Picture.png", data: Data([0, 1, 127, 255]), caption: "A caption", width: 320)
         note.images = [image]
-        note.recordings = [MeetingRecording(fileName: "recording.mp4", locale: "en-US", microphone: true, transcript: [TranscriptSegment(seconds: 12.5, speaker: "Eli", text: "Meeting text")])]
+        note.recordings = [MeetingRecording(fileName: "recording.mp4", locale: "en-US", microphone: true, transcript: [TranscriptSegment(seconds: 12.5, endSeconds: 15.0, speaker: "Eli", text: "Meeting text")])]
         note.documents = [NoteDocument(name: "Reference.pdf", data: Data([10, 0, 254])), NoteDocument(name: "Empty.txt", data: Data())]
         let source = Note(title: "Source")
         note.originID = source.id
@@ -32,7 +32,7 @@ import SQLite3
             return String(decoding: UnsafeBufferPointer(start: bytes, count: Int(sqlite3_column_bytes(statement, 0))), as: UTF8.self)
         }
         precondition(query("PRAGMA integrity_check") == "ok")
-        precondition(query("PRAGMA user_version") == "5")
+        precondition(query("PRAGMA user_version") == "6")
         precondition(query("SELECT body FROM notes WHERE position=0") == note.body)
         precondition(query("SELECT title FROM notes WHERE position=0") == note.title)
         precondition(query("SELECT count(*) FROM notes") == "2")
@@ -48,6 +48,7 @@ import SQLite3
         precondition(query("SELECT width FROM images") == "320.0")
         precondition(query("SELECT speaker FROM transcript_segments") == "Eli")
         precondition(query("SELECT seconds FROM transcript_segments") == "12.5")
+        precondition(query("SELECT end_seconds FROM transcript_segments") == "15.0")
         precondition(query("SELECT locale FROM recordings") == "en-US")
         precondition(query("SELECT hex(data) FROM documents WHERE position=0") == "0A00FE")
         precondition(query("SELECT name FROM documents WHERE position=0") == "Reference.pdf")

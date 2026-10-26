@@ -31,7 +31,12 @@ targets:
         CODE_SIGN_ENTITLEMENTS: ../iCloud.entitlements
         CODE_SIGN_STYLE: Automatic
         ENABLE_HARDENED_RUNTIME: YES
-        MARKETING_VERSION: '0.1.9'
+        MARKETING_VERSION: '0.1.10'
         CURRENT_PROJECT_VERSION: '1'
+    postBuildScripts:
+      - name: Bundle speaker labeling helper
+        script: |
+          SIGNING_IDENTITY="$EXPANDED_CODE_SIGN_IDENTITY" bash "$SRCROOT/../scripts/build-diarizer.sh" "$TARGET_BUILD_DIR/$WRAPPER_NAME"
+        basedOnDependencyAnalysis: false
     dependencies:
       - sdk: libsqlite3.tbd
