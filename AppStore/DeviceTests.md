@@ -18,3 +18,5 @@ Current status: all checks below await real devices.
 12. **Capture and export:** Open `measurednotes://capture`, accept the system confirmation, and verify a new editable note appears. Export JSON and SQLite, then inspect their note and attachment contents.
 
 Record failures before inviting additional testers. Do not mark a check passed based only on an archive, signing success, or a simulator layout.
+
+13. **Compact browser:** On the Duo front screen, open All notes, switch filters, search, select several notes, and create a note. The browser must remain open throughout. Done closes it onto the selected note. Reopen it, visit Index and settings, return, and close it. Confirm unfolding retains the selected note and displays the regular three-column layout.

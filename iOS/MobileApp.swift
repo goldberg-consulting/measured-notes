@@ -24,6 +24,8 @@ import UIKit
 }
 
 struct MobileLibrary: View {
+    @Environment(\.horizontalSizeClass) private var sizeClass
+    @State private var browserOpen = false
     @EnvironmentObject var recorder: MobileMeetingRecorder
     @ObservedObject var store: NoteStore
     @AppStorage("iCloudSyncEnabled") private var syncEnabled = true
@@ -38,6 +40,109 @@ struct MobileLibrary: View {
     @State private var error = ""
     var timeline: [Note] { newestFirst ? Array(store.timeline.reversed()) : store.timeline }
     var body: some View {
+        Group {
+            if sizeClass == .compact {
+                NavigationStack {
+                    editor
+                        .toolbar { ToolbarItem(placement: .topBarLeading) {
+                            Button("All notes", systemImage: "sidebar.left") { browserOpen = true }
+                        } }
+                }
+                .sheet(isPresented: $browserOpen) { compactBrowser }
+            } else { splitLibrary }
+        }
+    }
+    @ViewBuilder private var editor: some View {
+        if let id = store.selected, store.selectedNote != nil {
+            MobileNoteEditor(store: store, id: id).id(id)
+        } else {
+            ContentUnavailableView { Label("Your notes", systemImage: "square.and.pencil") } description: { Text("Choose a note or capture a thought.") } actions: {
+                Button("Browse notes") { browserOpen = true }
+                Button("New note") { create() }
+            }
+        }
+    }
+    private var compactBrowser: some View {
+        NavigationStack {
+            List {
+                Section {
+                    NavigationLink("Index and settings") { compactSettings }
+                    Picker("Index", selection: $store.filter) {
+                        ForEach(["All notes", "Pinned", "To-dos", "Meetings", "Reminders"], id: \.self) { Text($0).tag($0) }
+                        ForEach(store.collections) { Text($0.name).tag("collection:" + $0.id.uuidString) }
+                    }
+                }
+                Section {
+                    ForEach(timeline) { note in
+                        Button { store.openNote(note.id) } label: {
+                            HStack {
+                                VStack(alignment: .leading, spacing: 5) {
+                                    Text(note.displayTitle).font(.headline)
+                                    Text(note.excerpt).font(.caption).foregroundStyle(.secondary).lineLimit(2)
+                                }
+                                Spacer()
+                                if store.selected == note.id { Image(systemName: "checkmark").accessibilityLabel("Selected") }
+                            }.frame(maxWidth: .infinity, minHeight: 44, alignment: .leading).contentShape(Rectangle())
+                        }.foregroundStyle(.primary)
+                        .contextMenu {
+                            Button("Create related note") { store.createRelated(to: note.id) }
+                            Button(note.pinned ? "Unpin" : "Pin") { store.update(note.id) { $0.pinned.toggle() } }
+                            Button("Delete", role: .destructive) { deleteID = note.id }
+                        }
+                    }
+                    if timeline.isEmpty { Text("No notes match this view.").foregroundStyle(.secondary) }
+                }
+            }
+            .searchable(text: $store.search)
+            .navigationTitle("All notes")
+            .toolbar {
+                ToolbarItem(placement: .confirmationAction) { Button("Done") { browserOpen = false } }
+                ToolbarItem(placement: .bottomBar) { Menu("New", systemImage: "square.and.pencil") {
+                    Button("Note") { create() }
+                    Button("Meeting") { create("Meeting") }
+                    Button("Checklist") { create("To-do") }
+                } }
+                ToolbarItem(placement: .bottomBar) { Button("Reverse timeline", systemImage: "arrow.up.arrow.down") { newestFirst.toggle() } }
+            }
+            .alert("Delete note?", isPresented: Binding(get: { deleteID != nil }, set: { if !$0 { deleteID = nil } })) {
+                Button("Delete", role: .destructive) { if let deleteID { store.delete(deleteID) }; deleteID = nil }
+                Button("Cancel", role: .cancel) { deleteID = nil }
+            }
+        }.presentationDetents([.large]).interactiveDismissDisabled()
+    }
+    private var compactSettings: some View {
+        List {
+            if recorder.busy {
+                Section("Meeting") {
+                    Text(recorder.phase)
+                    if recorder.isRecording { Button("Stop recording", role: .destructive) { recorder.stop() } }
+                    if recorder.phase == "Transcribing" { Button("Cancel transcription") { recorder.cancelTranscription() } }
+                }
+            }
+            Section("Collections") {
+                ForEach(store.collections) { Text($0.name) }
+                TextField("New collection", text: $collectionName)
+                Picker("Kind", selection: $collectionKind) { ForEach(["Folder", "Product", "Flow"], id: \.self) { Text($0) } }
+                Button("Add collection") { if store.createCollection(name: collectionName, kind: collectionKind) != nil { collectionName = "" } }
+                    .disabled(collectionName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+            }
+            Section {
+                Toggle("iCloud sync", isOn: $syncEnabled)
+                Text(store.syncStatus).font(.caption).foregroundStyle(.secondary)
+                Button("Export SQLite") { export(sqlite: true) }
+                Button("Export JSON") { export(sqlite: false) }
+                Text(store.status).font(.caption).foregroundStyle(.secondary)
+            }
+            Section("Help") {
+                Link("Privacy policy", destination: URL(string: "https://github.com/goldberg-consulting/measured-notes/blob/269b6c90cbb920decc84056755c0541b7d9c03c5/AppStore/Privacy.md")!)
+                Link("Contact support", destination: URL(string: "mailto:cadence@goldbergconsulting.co")!)
+            }
+        }.navigationTitle("Index")
+            .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Done") { browserOpen = false } } }
+            .sheet(isPresented: Binding(get: { exportURL != nil }, set: { if !$0 { exportURL = nil } })) { if let exportURL { MobileShare(items: [exportURL]) } }
+            .alert("Export failed", isPresented: Binding(get: { !error.isEmpty }, set: { if !$0 { error = "" } })) { Button("OK") { error = "" } } message: { Text(error) }
+    }
+    private var splitLibrary: some View {
         NavigationSplitView(columnVisibility: $visibility, preferredCompactColumn: $preferred) {
             List {
                 if recorder.busy {
@@ -83,7 +188,7 @@ struct MobileLibrary: View {
                 .toolbar { ToolbarItem { Button("Quick capture", systemImage: "square.and.pencil") { create() } } }
                 .contextMenu { Button("New note") { create() }; Button("New collection") { addCollection = true } }
         } content: {
-            List(selection: Binding(get: { store.selected }, set: { store.selected = $0; preferred = .detail })) {
+            List(selection: Binding(get: { store.selected }, set: { store.selected = $0 })) {
                 ForEach(timeline) { note in
                     NavigationLink(value: note.id) {
                         HStack(alignment: .top, spacing: 10) {

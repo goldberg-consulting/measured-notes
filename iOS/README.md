@@ -50,3 +50,5 @@ TestFlight copy and remaining account setup are in `AppStore/TestFlight.md`. Rea
 ## Meetings
 
 Open a note’s menu → Record meeting, choose a language, and start recording. Meeting notes also show a direct Meeting recordings button. Stop to save audio and begin transcription. Audio remains saved if transcription fails or is cancelled; Transcribe again retries after a model download or interruption. The Index shows recording controls while you browse other notes.
+
+On compact screens, All notes opens a persistent browser. Selecting a note marks it with a checkmark and keeps the browser open; Done returns to the selected note. Search, collection filters, new notes, and Index and settings remain available inside the browser. The regular-width layout keeps its three columns.
